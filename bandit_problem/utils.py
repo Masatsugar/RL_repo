@@ -1,11 +1,8 @@
 import random
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from tqdm import tqdm
 
 
-class BernoulliArm():
+class BernoulliArm:
     def __init__(self, p):
         self.p = p
 
@@ -36,11 +33,37 @@ class ActionSelector:
         self.values[chosen_arm] = new_value
 
 
+class EpsilonGreedy(ActionSelector):
+    def __init__(self, counts, values, epsilon):
+        super(EpsilonGreedy, self).__init__(counts, values)
+        self.epsilon = epsilon
+
+    def select_arm(self):
+        if random.random() > self.epsilon:
+            return np.argmax(self.values)
+        else:
+            return random.randrange(len(self.values))
+
+
+class UCB1(ActionSelector):
+    def __init__(self, counts, values):
+        super(UCB1, self).__init__(counts, values)
+
+    def select_arm(self):
+        n_arms = len(self.counts)
+        for arm in range(n_arms):
+            if self.counts[arm] == 0:
+                return arm
+
+        total_counts = sum(self.counts)
+        bonus = np.sqrt((2 * np.log(np.array(total_counts))) / np.array(self.counts))
+        ucb_values = np.array(self.values) + bonus
+        return np.argmax(ucb_values)
+
+
 class ThompsonSampling(ActionSelector):
     def __init__(self, counts, values):
-        self.counts = counts  # armの引く回数
-        self.values = values  # 引いたarmから得られた報酬の平均値
-
+        super(ThompsonSampling, self).__init__(counts, values)
         self.alpha = None
         self.beta = None
 
@@ -69,34 +92,6 @@ class ThompsonSampling(ActionSelector):
     def beta_sampling(alpha, beta):
         samples = [np.random.beta(alpha[i] + 1, beta[i] + 1) for i in range(len(alpha))]
         return np.argmax(samples)
-
-
-class EpsilonGreedy(ActionSelector):
-    def __init__(self, counts, values, epsilon):
-        super(EpsilonGreedy, self).__init__(counts, values)
-        self.epsilon = epsilon
-
-    def select_arm(self):
-        if random.random() > self.epsilon:
-            return np.argmax(self.values)
-        else:
-            return random.randrange(len(self.values))
-
-
-class UCB1(ActionSelector):
-    def __init__(self, counts, values):
-        super(UCB1, self).__init__(counts, values)
-
-    def select_arm(self):
-        n_arms = len(self.counts)
-        for arm in range(n_arms):
-            if self.counts[arm] == 0:
-                return arm
-
-        total_counts = sum(self.counts)
-        bonus = np.sqrt((2 * np.log(np.array(total_counts))) / np.array(self.counts))
-        ucb_values = np.array(self.values) + bonus
-        return np.argmax(ucb_values)
 
 
 def categorical_draw(probs):
@@ -175,9 +170,7 @@ class PolicyGradient(ActionSelector):
 
     @staticmethod
     def soft_max(logits):
-        pi = [np.exp(var) / np.nansum(np.exp(logits)) for var in logits]
-        pi = np.nan_to_num(pi)
-        return pi
+        return np.nan_to_num([np.exp(var) / np.nansum(np.exp(logits)) for var in logits])
 
     def grad_soft_max(self):
         pi = self.soft_max(self.theta)
@@ -187,12 +180,6 @@ class PolicyGradient(ActionSelector):
 
     def grad_ln_pi(self):
         pi = self.soft_max(self.theta)
-        dlog_pi = []
-        for i in pi:
-            for j in pi:
-                if i == j:
-                    dlog_pi.append(1 - i)
-                else:
-                    dlog_pi.append(-j)
+        dlog_pi = [(1 - i) if i == j else -j for i in pi for j in pi]
         dlog_pi = np.array(dlog_pi).reshape(len(pi), -1)
         return dlog_pi
