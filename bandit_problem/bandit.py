@@ -4,8 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from bandit_problem.utils import EpsilonGreedy, UCB1, ThompsonSampling
-from bandit_problem.utils import BernoulliArm
+from utils import EpsilonGreedy, UCB1, ThompsonSampling
+from utils import BernoulliArm
 
 
 def test_algorithm(algo, arms, num_sims, horizon):
@@ -58,13 +58,14 @@ if __name__ == '__main__':
     # 問題設定: 腕：7本のうち、あたりは1つ (0.8)とする。
     theta = np.array([0.1, 0.4, 0.1, 0.2, 0.8, 0.1, 0.1])
     n_arms = len(theta)
-    #random.shuffle(theta)
+    # random.shuffle(theta)
     print(theta)
 
     arms = map(lambda x: BernoulliArm(x), theta)
     arms = list(arms)
 
-    algos = {'Eps': EpsilonGreedy([], [], epsilon=0.01), 'UCB': UCB1([], []), 'TS': ThompsonSampling([], [])}
+    algos = {'Eps': EpsilonGreedy([], [], epsilon=0.01), 'UCB': UCB1(
+        [], []), 'TS': ThompsonSampling([], [])}
     for key, algo in algos.items():
         run(algo, label=key)
 
