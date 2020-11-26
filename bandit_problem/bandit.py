@@ -52,11 +52,13 @@ def run(algo, label):
 
 
 if __name__ == '__main__':
-    NUM_SIMS = 1000
-    HORIZON = 200
+    NUM_SIMS = 100
+    # 設定
+    HORIZON = 1000
+    # 回数設定
 
-    # 問題設定: 腕：7本のうち、あたりは1つ (0.8)とする。
-    theta = np.array([0.1, 0.4, 0.1, 0.2, 0.8, 0.1, 0.1])
+    # 問題設定: 腕：10本のうち、あたりは1つ (0.8)とする。
+    theta = np.array([0.1, 0.4, 0.1, 0.2, 0.8, 0.1, 0.1, 0.1, 0.1, 0.1])
     n_arms = len(theta)
     # random.shuffle(theta)
     print(theta)
@@ -64,7 +66,8 @@ if __name__ == '__main__':
     arms = map(lambda x: BernoulliArm(x), theta)
     arms = list(arms)
 
-    algos = {'Eps': EpsilonGreedy([], [], epsilon=0.01), 'UCB': UCB1(
+  # EpsilonGreedyのepsilonの値設定
+    algos = {'Eps': EpsilonGreedy([], [], epsilon=0.05), 'UCB': UCB1(
         [], []), 'TS': ThompsonSampling([], [])}
     for key, algo in algos.items():
         run(algo, label=key)
