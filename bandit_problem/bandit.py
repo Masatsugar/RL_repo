@@ -1,11 +1,13 @@
 import random
 import numpy as np
 import pandas as pd
+import numpy.random as rd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from utils import EpsilonGreedy, UCB1, ThompsonSampling
 from utils import BernoulliArm
+from testdata import y
 
 
 def test_algorithm(algo, arms, num_sims, horizon):
@@ -57,9 +59,8 @@ if __name__ == '__main__':
     HORIZON = 1000
     # 試行回数設定
 
-    # 問題設定: 腕：50本のうち、あたりは1つ (0.8)とする。
-    theta = np.array([0.02234092, 0.0266909, 0.21540886, 0.00616458, 0.2541345, 0.03962746, 0.06908766, 0.19013299, 0.09385227, 0.03494758, 0.03838679, 0.07670622, 0.02583836, 0.33198215, 0.04975666, 0.04286148, 0.09360881, 0.08471966, 0.014344, 0.01221422, 0.09403581, 0.07944607, 0.02534608, 0.00833269, 0.14250581,
-                      0.0836638, 0.16662271, 0.16402948, 0.11201444, 0.15168502, 0.04981251, 0.2310533, 0.18554246, 0.05107217, 0.09482361, 0.00804513, 0.0083411, 0.02594944, 0.01445219, 0.11921273, 0.02309612, 0.02547163, 0.01260222, 0.00355269, 0.14044931, 0.01781433, 0.10316608, 0.05325515, 0.33837975, 0.16515635])
+    # 問題設定: 腕：100本のうち、あたりは1つとする
+    theta = np.array([", ".join(y)])
     n_arms = len(theta)
     # random.shuffle(theta)
     print(theta)
