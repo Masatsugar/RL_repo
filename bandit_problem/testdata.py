@@ -10,3 +10,5 @@ for elem in x:
     s = str(elem)
     y.append(s)
 print(", ".join(y))
+plt.hist(x, bins=15)
+plt.savefig("testdata.png")
