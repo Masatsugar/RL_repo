@@ -1,13 +1,11 @@
 import random
 import numpy as np
 import pandas as pd
-import numpy.random as rd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from utils import EpsilonGreedy, UCB1, ThompsonSampling
-from utils import BernoulliArm
-from testdata import y
+from bandit_problem.utils import EpsilonGreedy, UCB1, ThompsonSampling
+from bandit_problem.utils import BernoulliArm
 
 
 def test_algorithm(algo, arms, num_sims, horizon):
@@ -54,23 +52,19 @@ def run(algo, label):
 
 
 if __name__ == '__main__':
-    NUM_SIMS = 100
-    # 選択数設定
-    HORIZON = 1000
-    # 試行回数設定
+    NUM_SIMS = 1000
+    HORIZON = 200
 
-    # 問題設定: 腕：100本のうち、あたりは1つとする
-    theta = np.array([", ".join(y)])
+    # 問題設定: 腕：7本のうち、あたりは1つ (0.8)とする。
+    theta = np.array([0.1, 0.4, 0.1, 0.2, 0.8, 0.1, 0.1])
     n_arms = len(theta)
-    # random.shuffle(theta)
+    #random.shuffle(theta)
     print(theta)
 
     arms = map(lambda x: BernoulliArm(x), theta)
     arms = list(arms)
 
-  # EpsilonGreedyのepsilonの値設定
-    algos = {'Eps': EpsilonGreedy([], [], epsilon=0.05), 'UCB': UCB1(
-        [], []), 'TS': ThompsonSampling([], [])}
+    algos = {'Eps': EpsilonGreedy([], [], epsilon=0.01), 'UCB': UCB1([], []), 'TS': ThompsonSampling([], [])}
     for key, algo in algos.items():
         run(algo, label=key)
 
