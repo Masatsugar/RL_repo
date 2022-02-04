@@ -7,8 +7,13 @@ import pandas as pd
 from numpy import ndarray
 from tqdm import tqdm
 
-from bandit_problem.utils import (UCB1, BernoulliArm, EpsilonGreedy,
-                                  PolicyGradient, ThompsonSampling)
+from bandit_problem.utils import (
+    UCB1,
+    BernoulliArm,
+    EpsilonGreedy,
+    PolicyGradient,
+    ThompsonSampling,
+)
 
 
 class MultiArmedBandit:
@@ -17,6 +22,7 @@ class MultiArmedBandit:
         self.max_step = max_step
         self.env_step = 0
         self.cumulative_reward = 0
+        self.trajectory = []
 
     def reset(self):
         self.env_step = 0
@@ -38,10 +44,11 @@ class MultiArmedBandit:
         for i in range(self.max_step):
             action = algo.select_arm()
             _, reward, done, _ = self.step(action)
+            self.trajectory.append(action)
             algo.update(action, reward)
             if done:
-                print(f"done: reward mean={self.cumulative_reward / self.max_step}")
                 break
+        print(f"done: reward mean={self.cumulative_reward / self.max_step}")
         return self
 
 
@@ -105,7 +112,7 @@ def test_algorithm(
     }
 
 
-def run(algo: Any, y_label: str = "rewards") -> None:
+def run(arms: List[BernoulliArm], algo: Any, y_label: str = "rewards") -> None:
     """Run and plot results
 
     Parameters
@@ -120,7 +127,7 @@ def run(algo: Any, y_label: str = "rewards") -> None:
     """
     label_name = algo.__class__.__name__
     print(label_name)
-    n_arms = len(theta)
+    n_arms = len(arms)
     algo.initialize(n_arms)
     results = test_algorithm(algo, arms, num_sims=NUM_SIMS, horizon=HORIZON)
     df = pd.DataFrame(results)
@@ -146,16 +153,26 @@ if __name__ == "__main__":
     arms = list(map(lambda x: BernoulliArm(x), theta))
 
     # Set Algorithms
-    epsilons = [0.3]
-    algos = {f"Eps={eps}": EpsilonGreedy(epsilon=eps) for eps in epsilons}
-    algos.update(
-        {
-            "UCB": UCB1(),
-            "TS": ThompsonSampling(),
-            # "PG": PolicyGradient([], [], n_arms)
-        }
-    )
+    algo_list = [
+        EpsilonGreedy(epsilon=0.3),
+        UCB1(),
+        ThompsonSampling(),
+        # "PG": PolicyGradient(len(arms))
+    ]
+
     plt.figure(figsize=(6, 4), dpi=300)
-    for algo in algos.values():
-        run(algo)
+    for algo in algo_list:
+        run(arms, algo)
+    plt.show()
+
+    # Another Example
+    env = MultiArmedBandit(arms=arms, max_step=HORIZON)
+    env.reset()
+    algo = EpsilonGreedy(epsilon=0.2)
+    env.run(algo=algo)
+    print(f"Counts of chosen arms={algo.counts}, \nreward_mean={algo.values}")
+    plt.plot(range(0, HORIZON), env.trajectory, 'x-')
+    plt.title(algo.__class__.__name__)
+    plt.xlabel("step")
+    plt.ylabel("arm")
     plt.show()
