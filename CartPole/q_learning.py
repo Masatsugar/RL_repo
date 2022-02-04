@@ -1,6 +1,8 @@
-import numpy as np
-import gym
 from queue import Queue
+
+import gym
+import numpy as np
+from numpy import ndarray
 
 
 class QTable:
@@ -11,27 +13,24 @@ class QTable:
         pole_angle = (-41.8°, 41.8)
         pole_v = (-Inf, Inf)
         """
-        self.q_table = np.random.uniform(low=0, high=1, size=(num_digit ** num_state, num_action))
+        self.q_table = np.random.uniform(
+            low=0, high=1, size=(num_digit ** num_state, num_action)
+        )
         self.num_digit = num_digit
         self.num_action = num_action
-        self.bound = np.array([[-2.4, 2.4],
-                               [-3., 3.],
-                               [-.5, .5],
-                               [-2., 2.]])
-
-    @property
-    def num_digit(self):
-        return self.__num_digit
-
-    @num_digit.setter
-    def num_digit(self, digit: int):
-        self.__num_digit = digit
+        self.bound = np.array([[-2.4, 2.4], [-3.0, 3.0], [-0.5, 0.5], [-2.0, 2.0]])
 
     # digitizes the continuous state into discrete state
     def digitize(self, observation: np.ndarray) -> int:
 
         bins = lambda x, y, z: np.linspace(x, y, z + 1)[1:-1]
-        bins_list = list(map(lambda x, y: bins(x, y, self.num_digit), self.bound[:, 0],self.bound[:, 1]))
+        bins_list = list(
+            map(
+                lambda x, y: bins(x, y, self.num_digit),
+                self.bound[:, 0],
+                self.bound[:, 1],
+            )
+        )
         # bins_list = [bins(x, y, self.num.digit) for x, y in zip(bound[:, 0], bound[,:1])]
         digit = [np.digitize(obs, lst) for obs, lst in zip(observation, bins_list)]
 
@@ -49,13 +48,12 @@ class Action:
         self.num_action = num_action
         self.episode = 0
 
-    def greedy(self, q_table, state, ) -> int:
+    def greedy(self, q_table, state,) -> ndarray[int]:
         return np.argmax(q_table[state][:])
 
     def epsilon_greedy(self, q_table, state, episode) -> int:
         self.episode = episode
         epsilon = 0.5 * (1 / (episode + 1))
-
         if epsilon < np.random.uniform(0, 1):
             action = np.argmax(q_table[state][:])
         else:
@@ -79,13 +77,15 @@ class QLearning(QTable):
         max_q = max(self.q_table[state_next][:])
 
         # Q(s_t, a_t) := Q(s_t, a_t) + eta * ( reward + gamma * max Q(s_{t+1}, a_t) - Q(s_t, a_t))
-        self.q_table[state, action] = \
-            self.q_table[state, action] + \
-            self.eta * (reward + self.gamma * max_q - self.q_table[state, action])
+        self.q_table[state, action] = self.q_table[state, action] + self.eta * (
+            reward + self.gamma * max_q - self.q_table[state, action]
+        )
 
     def choose_action(self, observation, episode: int) -> int:
         state = self.digitize(observation)
-        return self.action.epsilon_greedy(q_table=self.q_table, state=state, episode=episode)
+        return self.action.epsilon_greedy(
+            q_table=self.q_table, state=state, episode=episode
+        )
 
 
 class Sarsa(QLearning):
@@ -98,13 +98,15 @@ class Sarsa(QLearning):
 
         # A difference between Q-learning and SARSA is to use Q(s_t, a_t) instead of using max Q(s_t, a_t)
         # On-policy
-        action_next = self.action.epsilon_greedy(self.q_table, state_next, self.action.episode)
+        action_next = self.action.epsilon_greedy(
+            self.q_table, state_next, self.action.episode
+        )
         next_q = self.q_table[state_next, action_next]
 
         # Q(s_t, a_t) := Q(s_t, a_t) + eta * ( reward + gamma * Q(s_{t+1}, a_{t+1} - Q(s_t, a_t))
-        self.q_table[state, action] = \
-            self.q_table[state, action] + \
-            self.eta * (reward + self.gamma * next_q - self.q_table[state, action])
+        self.q_table[state, action] = self.q_table[state, action] + self.eta * (
+            reward + self.gamma * next_q - self.q_table[state, action]
+        )
 
 
 class Agent:
@@ -134,7 +136,9 @@ class Agent:
         return reward, complete_episodes
 
     @staticmethod
-    def record(episode, episode_reward, global_ep_reward, result_queue, total_loss, num_steps):
+    def record(
+        episode, episode_reward, global_ep_reward, result_queue, total_loss, num_steps
+    ):
         if global_ep_reward == 0:
             global_ep_reward = episode_reward
         else:
@@ -162,7 +166,9 @@ class Agent:
                 observation_next, reward, done, _ = self.env.step(action)
 
                 # takes an immediate reward
-                my_reward, complete_episodes = self.Reward(done, step, complete_episodes)
+                my_reward, complete_episodes = self.Reward(
+                    done, step, complete_episodes
+                )
 
                 # updates Q-table
                 q.update(observation, action, my_reward, observation_next)
@@ -170,7 +176,11 @@ class Agent:
                 # updates an observation
                 observation = observation_next
                 if done:
-                    print('{0} Episode : Finished after {1} time steps'.format(episode, step + 1))
+                    print(
+                        "{0} Episode : Finished after {1} time steps".format(
+                            episode, step + 1
+                        )
+                    )
                     break
 
                 self.global_moving_average_reward = self.record(
@@ -179,12 +189,17 @@ class Agent:
                     global_ep_reward=self.global_moving_average_reward,
                     result_queue=self.res_queue,
                     total_loss=0,
-                    num_steps=step + 1)
+                    num_steps=step + 1,
+                )
 
                 reward_sum += reward
                 reward_avg += reward_sum
                 final_avg = reward_avg / float(self.EPISODE)
-                print("Average score across {} episodes: {}".format(self.EPISODE, final_avg))
+                print(
+                    "Average score across {} episodes: {}".format(
+                        self.EPISODE, final_avg
+                    )
+                )
 
             if complete_episodes >= 5:
                 print("5 times successes")

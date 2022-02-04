@@ -1,5 +1,5 @@
 import random
-from typing import List, Any
+from typing import Any, Dict, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,34 +7,47 @@ import pandas as pd
 from numpy import ndarray
 from tqdm import tqdm
 
-from bandit_problem.utils import (
-    UCB1,
-    BernoulliArm,
-    EpsilonGreedy,
-    PolicyGradient,
-    ThompsonSampling,
-)
+from bandit_problem.utils import (UCB1, BernoulliArm, EpsilonGreedy,
+                                  PolicyGradient, ThompsonSampling)
 
 
 class MultiArmedBandit:
-    def __init__(self, arms, max_step=200):
+    def __init__(self, arms: List[BernoulliArm], max_step: int = 200):
         self.arms = arms
         self.max_step = max_step
         self.env_step = 0
+        self.cumulative_reward = 0
+
+    def reset(self):
+        self.env_step = 0
+        self.cumulative_reward = 0
 
     def step(self, action):
         self.env_step += 1
+        reward = self.reward(action)
+        self.cumulative_reward += reward
         done = True if self.env_step > self.max_step else False
-        _reward = self.reward(action)
-        return None, _reward, done, {}
+        return None, reward, done, {}
 
     def reward(self, action):
         return self.arms[action].draw()
 
+    def run(self, algo):
+        self.reset()
+        algo.initialize(len(self.arms))
+        for i in range(self.max_step):
+            action = algo.select_arm()
+            _, reward, done, _ = self.step(action)
+            algo.update(action, reward)
+            if done:
+                print(f"done: reward mean={self.cumulative_reward / self.max_step}")
+                break
+        return self
+
 
 def test_algorithm(
     algo: Any, arms: List[BernoulliArm], num_sims: int = 200, horizon: int = 200,
-) -> List[ndarray]:
+) -> Dict[str, ndarray]:
     """Run an algorithm for evaluation in MAB
 
     Parameters
@@ -48,8 +61,8 @@ def test_algorithm(
     horizon
         The number of drawing MAB.
 
-    Returns:
-        List[sim_nums, times, chosen_arms, rewards, cumulative_rewards]
+    Returns
+        Dict: {sim_nums, times, chosen_arms, rewards, cumulative_rewards}
     -------
     """
 
@@ -83,35 +96,48 @@ def test_algorithm(
             # update algorithm
             algo.update(chosen_arm, reward)
 
-    return [sim_nums, times, chosen_arms, rewards, cumulative_rewards]
+    return {
+        "sim_nums": sim_nums,
+        "times": times,
+        "chosen_arms": chosen_arms,
+        "rewards": rewards,
+        "cumulative_rewards": cumulative_rewards,
+    }
 
 
-def run(algo: Any, label: str) -> None:
+def run(algo: Any, y_label: str = "rewards") -> None:
     """Run and plot results
 
     Parameters
     ----------
     algo
         Any algorithm for MAB
-    label
-        Key, the name of algorithm
+    y_label
+        "rewards", "chosen_arms", or "cumulative_rewards"
 
     Returns
     -------
     """
-    print(label)
+    label_name = algo.__class__.__name__
+    print(label_name)
     n_arms = len(theta)
     algo.initialize(n_arms)
     results = test_algorithm(algo, arms, num_sims=NUM_SIMS, horizon=HORIZON)
-    df = pd.DataFrame({"times": results[1], "rewards": results[3]})
-    grouped = df["rewards"].groupby(df["times"])
-    plt.plot(grouped.mean(), label=label)
+    df = pd.DataFrame(results)
+    grouped = df[y_label].groupby(df["times"])
+
+    # Figure
+    plt.title(f"Multi-armed bandit: sims={NUM_SIMS}")
+    plt.plot(grouped.mean(), label=label_name)
+    plt.ylabel(f"{y_label} mean")
+    plt.xlabel("Number of steps")
     plt.legend(loc="best")
+    # plt.show()
 
 
 if __name__ == "__main__":
     NUM_SIMS = 200
-    HORIZON = 400
+    HORIZON = 200
 
     # 問題設定: 腕：7本のうち、あたりは1つ (0.8)とする。
     theta = [0.1, 0.4, 0.1, 0.2, 0.8, 0.1, 0.1]
@@ -120,7 +146,7 @@ if __name__ == "__main__":
     arms = list(map(lambda x: BernoulliArm(x), theta))
 
     # Set Algorithms
-    epsilons = [0.1]
+    epsilons = [0.3]
     algos = {f"Eps={eps}": EpsilonGreedy(epsilon=eps) for eps in epsilons}
     algos.update(
         {
@@ -129,7 +155,7 @@ if __name__ == "__main__":
             # "PG": PolicyGradient([], [], n_arms)
         }
     )
-    for key, algo in algos.items():
-        run(algo, label=key)
-
+    plt.figure(figsize=(6, 4), dpi=300)
+    for algo in algos.values():
+        run(algo)
     plt.show()
