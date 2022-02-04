@@ -126,6 +126,8 @@ def run(arms: List[BernoulliArm], algo: Any, y_label: str = "rewards") -> None:
     -------
     """
     label_name = algo.__class__.__name__
+    if label_name == "EpsilonGreedy":
+        label_name += f"({algo.epsilon})"
     print(label_name)
     n_arms = len(arms)
     algo.initialize(n_arms)
@@ -154,16 +156,18 @@ if __name__ == "__main__":
 
     # Set Algorithms
     algo_list = [
+        EpsilonGreedy(epsilon=0.1),
         EpsilonGreedy(epsilon=0.3),
         UCB1(),
         ThompsonSampling(),
-        # "PG": PolicyGradient(len(arms))
+        # PolicyGradient(len(arms))
     ]
-
-    plt.figure(figsize=(6, 4), dpi=300)
+    plt.figure(dpi=300)
     for algo in algo_list:
         run(arms, algo)
+    # plt.savefig("mab.png")
     plt.show()
+    plt.clf()
 
     # Another Example
     env = MultiArmedBandit(arms=arms, max_step=HORIZON)
@@ -171,6 +175,7 @@ if __name__ == "__main__":
     algo = EpsilonGreedy(epsilon=0.2)
     env.run(algo=algo)
     print(f"Counts of chosen arms={algo.counts}, \nreward_mean={algo.values}")
+
     plt.plot(range(0, HORIZON), env.trajectory, 'x-')
     plt.title(algo.__class__.__name__)
     plt.xlabel("step")

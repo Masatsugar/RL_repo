@@ -109,10 +109,9 @@ def categorical_draw(probs):
 
 
 class PolicyGradient(ActionSelector):
-    def __init__(self, counts, values, n_arms):
+    def __init__(self, n_arms, counts=[], values=[]):
         super(PolicyGradient, self).__init__(counts, values)
         self.n_arms = n_arms
-
         self.total_values = [0 for _ in range(self.n_arms)]
         self.total_counts = 1
         self.episodes = 0
