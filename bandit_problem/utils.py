@@ -1,5 +1,7 @@
 import random
+
 import numpy as np
+from tqdm import tqdm
 
 
 class BernoulliArm:
@@ -34,7 +36,7 @@ class ActionSelector:
 
 
 class EpsilonGreedy(ActionSelector):
-    def __init__(self, counts, values, epsilon):
+    def __init__(self, counts: list = [], values: list = [], epsilon: float = 0.1):
         super(EpsilonGreedy, self).__init__(counts, values)
         self.epsilon = epsilon
 
@@ -46,7 +48,7 @@ class EpsilonGreedy(ActionSelector):
 
 
 class UCB1(ActionSelector):
-    def __init__(self, counts, values):
+    def __init__(self, counts=[], values=[]):
         super(UCB1, self).__init__(counts, values)
 
     def select_arm(self):
@@ -62,7 +64,7 @@ class UCB1(ActionSelector):
 
 
 class ThompsonSampling(ActionSelector):
-    def __init__(self, counts, values):
+    def __init__(self, counts=[], values=[]):
         super(ThompsonSampling, self).__init__(counts, values)
         self.alpha = None
         self.beta = None
@@ -170,7 +172,9 @@ class PolicyGradient(ActionSelector):
 
     @staticmethod
     def soft_max(logits):
-        return np.nan_to_num([np.exp(var) / np.nansum(np.exp(logits)) for var in logits])
+        return np.nan_to_num(
+            [np.exp(var) / np.nansum(np.exp(logits)) for var in logits]
+        )
 
     def grad_soft_max(self):
         pi = self.soft_max(self.theta)
