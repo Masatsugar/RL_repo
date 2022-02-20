@@ -1,7 +1,7 @@
 import gym
 
-from grid_world.vlearning import Vlearning
 from grid_world.env import CustomMaze
+from grid_world.vlearning import Vlearning
 
 if __name__ == "__main__":
     # env = gym.make("FrozenLake-v0")

@@ -1,5 +1,5 @@
-from collections import defaultdict, Counter
 import random
+from collections import Counter, defaultdict
 
 
 class Vlearning:

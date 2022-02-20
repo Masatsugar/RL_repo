@@ -26,6 +26,22 @@ class CustomMaze(gym.Env):
             [[2, 2], [2, 1]],
             [[2, 1], [1, 1]],
         ]
+        self.init_policy = np.array(
+            [
+                [1, 1, np.nan, np.nan],  # S0
+                [np.nan, 1, np.nan, 1],  # S1
+                [1, 1, np.nan, 1],  # S2
+                [1, np.nan, np.nan, 1],  # S3
+                [1, np.nan, 1, np.nan],  # S4
+                [np.nan, np.nan, np.nan, np.nan],  # S5
+                [1, 1, 1, np.nan],  # S6
+                [np.nan, np.nan, np.nan, np.nan],  # S7
+                [np.nan, 1, 1, np.nan],  # S8
+                [np.nan, 1, np.nan, 1],  # S9
+                [np.nan, 1, 1, 1],  # S10
+                [np.nan, np.nan, np.nan, np.nan],  # S11: Goal
+            ]
+        )
         self.start = 0
         self.goal = 11
         self.fire = 7
@@ -74,38 +90,6 @@ class CustomMaze(gym.Env):
         (line,) = ax.plot([0.5], [0.5], marker="o", color="g", markersize=60)
         plt.show()
 
-    def compute_prob(self, state):
-        pi = state.T / np.nansum(state, axis=1)
-        return np.nan_to_num(pi.T)
-
-    def get_next_state(self, pi, s):
-        """次の状態を計算する
-
-        Args:
-            pi:
-            s:
-
-        Returns:
-            next_state
-
-        """
-
-        next_direction = np.random.choice(
-            [i for i in range(self.action_space.n)], p=pi[s, :]
-        )
-        if next_direction == Action.Up:
-            a = 0
-            s_next = s + 4
-        elif next_direction == Action.Right:
-            a, s_next = 1, s + 1
-        elif next_direction == Action.Down:
-            a, s_next = 2, s - 4
-        elif next_direction == Action.Left:
-            a, s_next = 3, s - 1
-        else:
-            raise ValueError("")
-        return a, s_next
-
     def step(self, action):
         if self.counter == self.max_horizon:
             return self.cur_state, 0.0, True, {}
@@ -144,21 +128,30 @@ class CustomMaze(gym.Env):
         else:
             raise ValueError("Action is ranged from [0, 1, 2, 3].")
 
+    def compute_prob(self, state):
+        pi = state.T / np.nansum(state, axis=1)
+        return np.nan_to_num(pi.T)
+
     def goal_maze_ret_s_a(self, pi):
-        s = 0
-        s_a_history = [[0, np.nan]]
+        state = 0
+        s_a_history = [[state, np.nan]]
+        total_reward = 0.0
         while 1:
-            a, next_s = self.get_next_state(pi, s)
-            s_a_history[-1][1] = a
-            s_a_history.append([next_s.np.nan])
-            if next_s == 8:
-                print("Done")
+            action = np.random.choice(
+                [i for i in range(self.action_space.n)], p=pi[state, :]
+            )
+            state, reward, is_done, _ = self.step(action)
+            total_reward += reward
+            s_a_history.append([state, action])
+            if is_done:
+                print(f"Done: transition: {s_a_history}, total reward {total_reward}")
                 break
-            else:
-                s = next_s
+
         return s_a_history
 
 
 if __name__ == "__main__":
     env = CustomMaze()
     env.reset()
+    init_pi = env.compute_prob(env.init_policy)
+    state_action = env.goal_maze_ret_s_a(init_pi)
