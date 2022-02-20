@@ -22,7 +22,6 @@ class Vlearning:
             self.transitions[state, action][new_state] += 1
             total_reward += reward
             if is_done:
-                print("done")
                 break
             state = new_state
         return total_reward
@@ -45,7 +44,10 @@ class Vlearning:
             new_state, reward, is_done, _ = self.env.step(action)
             self.reward_table[self.state, action, new_state] = reward
             self.transitions[self.state, action][new_state] += 1
-            self.state = self.env.reset() if is_done else new_state
+            if is_done:
+                self.state = self.env.reset()
+            else:
+                self.state = new_state
 
     def calculate_action_value(self, state, action):
         target_counts = self.transitions[state, action]

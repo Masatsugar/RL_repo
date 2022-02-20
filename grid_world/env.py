@@ -108,7 +108,7 @@ class CustomMaze(gym.Env):
 
     def step(self, action):
         if self.counter == self.max_horizon:
-            return self.cur_state, 0, True, {}
+            return self.cur_state, 0.0, True, {}
 
         if self.done:
             raise ValueError(
@@ -120,27 +120,27 @@ class CustomMaze(gym.Env):
             if self.cur_state in [0, 2, 3, 4, 6]:
                 self.cur_state += 4
             if self.cur_state == self.fire:
-                return self.cur_state, -1, True, {}
-            return self.cur_state, 0, False, {}
+                return self.cur_state, -1.0, True, {}
+            return self.cur_state, 0.0, False, {}
 
         elif action == Action.Right:
             if self.cur_state in [0, 1, 2, 6, 8, 9, 10]:
                 self.cur_state += 1
             if self.cur_state == self.goal:
-                return self.cur_state, 1, True, {}
+                return self.cur_state, 1.0, True, {}
             if self.cur_state == self.fire:
-                return self.cur_state, -1, True, {}
-            return self.cur_state, 0, False, {}
+                return self.cur_state, -1.0, True, {}
+            return self.cur_state, 0.0, False, {}
 
         elif action == Action.Down:
             if self.cur_state in [4, 6, 8, 10]:
                 self.cur_state -= 4
-            return self.cur_state, 0, False, {}
+            return self.cur_state, 0.0, False, {}
 
         elif action == Action.Left:
             if self.cur_state in [1, 2, 3, 9, 10]:
                 self.cur_state -= 1
-            return self.cur_state, 0, False, {}
+            return self.cur_state, 0.0, False, {}
         else:
             raise ValueError("Action is ranged from [0, 1, 2, 3].")
 
