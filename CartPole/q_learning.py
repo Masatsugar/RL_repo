@@ -1,12 +1,12 @@
 from queue import Queue
+from typing import Tuple
 
 import gym
 import numpy as np
-from numpy import ndarray
 
 
 class QTable:
-    def __init__(self, num_digit, num_state, num_action):
+    def __init__(self, env, num_digit):
         """
         cart_x = (-2.4, 2.4)
         cart_v = (-Inf, Inf)
@@ -14,15 +14,25 @@ class QTable:
         pole_v = (-Inf, Inf)
         """
         self.q_table = np.random.uniform(
-            low=0, high=1, size=(num_digit ** num_state, num_action)
+            low=0,
+            high=1,
+            size=(num_digit ** env.observation_space.shape[0], env.action_space.n),
         )
         self.num_digit = num_digit
-        self.num_action = num_action
         self.bound = np.array([[-2.4, 2.4], [-3.0, 3.0], [-0.5, 0.5], [-2.0, 2.0]])
 
-    # digitizes the continuous state into discrete state
     def digitize(self, observation: np.ndarray) -> int:
+        """
+        Digitizes the continuous state into discrete state
 
+        Parameters
+        ----------
+        observation
+
+        Returns
+        -------
+
+        """
         bins = lambda x, y, z: np.linspace(x, y, z + 1)[1:-1]
         bins_list = list(
             map(
@@ -33,96 +43,129 @@ class QTable:
         )
         # bins_list = [bins(x, y, self.num.digit) for x, y in zip(bound[:, 0], bound[,:1])]
         digit = [np.digitize(obs, lst) for obs, lst in zip(observation, bins_list)]
-
         return sum([dig * (self.num_digit ** i) for i, dig in enumerate(digit)])
 
-    def update(self, observation, action, reward, observation_next):
-        return
+    def __getitem__(self, idx):
+        return self.q_table[idx]
 
-    def choose_action(self, observation, episode: int):
-        return
+    def __setitem__(self, key, value):
+        self.q_table[key] = value
+
+    def __repr__(self):
+        return self.q_table
 
 
 class Action:
-    def __init__(self, num_action):
-        self.num_action = num_action
+    def __init__(self, env):
+        self.num_action = env.action_space.n
         self.episode = 0
 
-    def greedy(self, q_table, state,) -> ndarray[int]:
+    def greedy(self, q_table, state):
         return np.argmax(q_table[state][:])
 
     def epsilon_greedy(self, q_table, state, episode) -> int:
         self.episode = episode
         epsilon = 0.5 * (1 / (episode + 1))
         if epsilon < np.random.uniform(0, 1):
-            action = np.argmax(q_table[state][:])
+            action = self.greedy(q_table, state)
         else:
             action = np.random.choice(self.num_action)
         return action
 
 
-class QLearning(QTable):
-    def __init__(self, num_digit, num_state, num_action, eta=0.5, gamma=0.99):
-        super().__init__(num_digit, num_state, num_action)
-        self.action = Action(self.num_action)
+class QLearning:
+    def __init__(self, env, num_digit, eta=0.5, gamma=0.99):
+        self.action = Action(env)
+        self.q_table = QTable(env, num_digit=num_digit)
         self.eta = eta
         self.gamma = gamma
 
-    def update(self, observation, action, reward, observation_next):
-        state = self.digitize(observation)
-        state_next = self.digitize(observation_next)
+    def update(self, state, action, reward, next_state) -> None:
+        """Off-policy update
 
-        # max_a Q(s_{t+1}, a_t)
-        # Off-policy
-        max_q = max(self.q_table[state_next][:])
+        max_a Q(s_{t+1}, a_t)
+        Q(s_t, a_t) := Q(s_t, a_t) + eta * ( reward + gamma * max Q(s_{t+1}, a_t) - Q(s_t, a_t))
 
-        # Q(s_t, a_t) := Q(s_t, a_t) + eta * ( reward + gamma * max Q(s_{t+1}, a_t) - Q(s_t, a_t))
-        self.q_table[state, action] = self.q_table[state, action] + self.eta * (
-            reward + self.gamma * max_q - self.q_table[state, action]
+        Parameters
+        ----------
+        state
+        action
+        reward
+        next_state
+
+        Returns
+        -------
+
+        """
+        state = self.q_table.digitize(state)
+        next_state = self.q_table.digitize(next_state)
+        cur_q = self.q_table[state, action]
+        max_q = max(self.q_table[next_state][:])
+        self.q_table[state, action] = cur_q + self.eta * (
+            reward + self.gamma * max_q - cur_q
         )
 
-    def choose_action(self, observation, episode: int) -> int:
-        state = self.digitize(observation)
+    def compute_action(self, observation, episode: int) -> int:
+        state = self.q_table.digitize(observation)
         return self.action.epsilon_greedy(
             q_table=self.q_table, state=state, episode=episode
         )
 
 
-class Sarsa(QLearning):
-    def __init__(self, num_digit, num_state, num_action, eta=0.5, gamma=0.99):
-        super().__init__(num_digit, num_state, num_action, eta, gamma)
+class Sarsa:
+    def __init__(self, env, num_digit, eta=0.5, gamma=0.99):
+        self.action = Action(env)
+        self.q_table = QTable(env, num_digit=num_digit)
+        self.eta = eta
+        self.gamma = gamma
 
-    def update(self, observation, action, reward, observation_next):
-        state = self.digitize(observation)
-        state_next = self.digitize(observation_next)
+    def update(self, state, action, reward, next_state) -> None:
+        """On-policy update
 
-        # A difference between Q-learning and SARSA is to use Q(s_t, a_t) instead of using max Q(s_t, a_t)
-        # On-policy
-        action_next = self.action.epsilon_greedy(
-            self.q_table, state_next, self.action.episode
+        A difference between Q-learning and SARSA is to use Q(s_t, a_t) instead of using max Q(s_t, a_t).
+            Q(s_t, a_t) := Q(s_t, a_t) + eta * ( reward + gamma * Q(s_{t+1}, a_{t+1} - Q(s_t, a_t))
+
+        Parameters
+        ----------
+        state
+        action
+        reward
+        next_state
+
+        Returns
+        -------
+
+        """
+        state = self.q_table.digitize(state)
+        next_state = self.q_table.digitize(next_state)
+
+        # select next action from policy.
+        next_action = self.action.epsilon_greedy(
+            self.q_table, next_state, self.action.episode
         )
-        next_q = self.q_table[state_next, action_next]
+        cur_q = self.q_table[state, action]
+        next_q = self.q_table[next_state, next_action]
+        self.q_table[state, action] = cur_q + self.eta * (
+            reward + self.gamma * next_q - cur_q
+        )
 
-        # Q(s_t, a_t) := Q(s_t, a_t) + eta * ( reward + gamma * Q(s_{t+1}, a_{t+1} - Q(s_t, a_t))
-        self.q_table[state, action] = self.q_table[state, action] + self.eta * (
-            reward + self.gamma * next_q - self.q_table[state, action]
+    def compute_action(self, observation, episode: int) -> int:
+        state = self.q_table.digitize(observation)
+        return self.action.epsilon_greedy(
+            q_table=self.q_table, state=state, episode=episode
         )
 
 
 class Agent:
-    def __init__(self, env, episode=500, step=200, eta=0.5, gamma=0.99):
+    def __init__(self, env, episode=500, horizon=200):
         self.env = env
-        self.ETA = eta
-        self.GAMMA = gamma
         self.EPISODE = episode
-        self.STEP = step
-        self.i_digit = 6
+        self.HORIZON = horizon
 
         self.global_moving_average_reward = 0
         self.res_queue = Queue()
 
-    # defines some reward function.
-    def Reward(self, done: bool, step: int, complete_episodes: int) -> (int, int):
+    def reward(self, done: bool, step: int, complete_episodes: int) -> Tuple[int, int]:
         if done:
             if step < 195:
                 reward = -1
@@ -153,34 +196,24 @@ class Agent:
         result_queue.put(global_ep_reward)
         return global_ep_reward
 
-    def run(self, alg: object):
-        # object of each algorithm
-        q = alg
-        reward_avg = 0
+    def run(self, algo):
+        reward_avg = 0.0
         complete_episodes = 0
         for episode in range(self.EPISODE):
-            observation = self.env.reset()
+            obs = self.env.reset()
             reward_sum = 0.0
-            for step in range(self.STEP):
-                action = q.choose_action(observation, episode=episode)
-                observation_next, reward, done, _ = self.env.step(action)
+            for step in range(self.HORIZON):
+                action = algo.compute_action(obs, episode=episode)
+                next_obs, reward, done, _ = self.env.step(action)
 
                 # takes an immediate reward
-                my_reward, complete_episodes = self.Reward(
+                my_reward, complete_episodes = self.reward(
                     done, step, complete_episodes
                 )
-
-                # updates Q-table
-                q.update(observation, action, my_reward, observation_next)
-
-                # updates an observation
-                observation = observation_next
+                algo.update(obs, action, my_reward, next_obs)
+                obs = next_obs
                 if done:
-                    print(
-                        "{0} Episode : Finished after {1} time steps".format(
-                            episode, step + 1
-                        )
-                    )
+                    print(f"{episode} Episode : Finished after {step+1} time steps")
                     break
 
                 self.global_moving_average_reward = self.record(
@@ -195,11 +228,7 @@ class Agent:
                 reward_sum += reward
                 reward_avg += reward_sum
                 final_avg = reward_avg / float(self.EPISODE)
-                print(
-                    "Average score across {} episodes: {}".format(
-                        self.EPISODE, final_avg
-                    )
-                )
+                print(f"Average score across {self.EPISODE} episodes: {final_avg}")
 
             if complete_episodes >= 5:
                 print("5 times successes")
@@ -207,11 +236,8 @@ class Agent:
 
 if __name__ == "__main__":
     env = gym.make("CartPole-v0")
-    i_state = env.observation_space.shape[0]
-    i_action = env.action_space.n
-    i_digit = 6
 
-    alg1 = QLearning(i_digit, i_state, i_action, eta=0.5, gamma=0.99)
-    alg2 = Sarsa(i_digit, i_state, i_action, eta=0.5, gamma=0.99)
+    alg1 = QLearning(env, num_digit=6, eta=0.5, gamma=0.99)
+    alg2 = Sarsa(env, num_digit=6, eta=0.5, gamma=0.99)
     agent = Agent(env, episode=200)
-    agent.run(alg2)
+    agent.run(alg1)

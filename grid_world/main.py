@@ -1,16 +1,16 @@
 import gym
 
+from grid_world.agent import Qlearning, Vlearning
 from grid_world.env import CustomMaze
-from grid_world.agent import Vlearning, Qlearning
 
 if __name__ == "__main__":
-    env = gym.make("FrozenLake-v0")
-    # env = CustomMaze()
-    # agent = Vlearning(env, gamma=0.90, epsilon=0.0)
-    agent = Qlearning(env)
+    # env = gym.make("FrozenLake-v0")
+    env = CustomMaze()
+    agent = Vlearning(env, gamma=0.90, epsilon=0.0)
+    # agent = Qlearning(env, gamma=0.99, epsilon=0.0)
     iter_n = 0
     best_reward = 0.0
-    test_episode = 10
+    test_episode = 20
     while True:
         iter_n += 1
         agent.play_random_steps(100)

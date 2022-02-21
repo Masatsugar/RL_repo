@@ -15,7 +15,11 @@ class Agent:
         total_reward = 0.0
         state = self.env.reset()
         while True:
-            action = self.env.action_space.sample() if is_random else self.compute_action(state)
+            action = (
+                self.env.action_space.sample()
+                if is_random
+                else self.compute_action(state)
+            )
             next_state, reward, is_done, _ = self.env.step(action)
             self.set_state_action(state, action, next_state, reward)
             total_reward += reward
@@ -84,7 +88,7 @@ class Qlearning(Agent):
         if random.random() > self.epsilon:
             best_action, best_value = None, None
             for action in range(self.env.action_space.n):
-                action_value = self.value_table[state, action]  # select max value (Q-table)
+                action_value = self.value_table[state, action]  # select max Q-value
                 if best_value is None or best_value < action_value:
                     best_value = action_value
                     best_action = action
@@ -106,17 +110,3 @@ class Qlearning(Agent):
                         + self.gamma * self.value_table[target_state, best_action]
                     )
                     self.value_table[state, action] = action_value
-
-
-# import numpy as np
-#
-# states = np.arange(0, 12)
-# for state in states:
-#     counts = []
-#     for action in [0, 1, 2, 3]:
-#         target_counts = self.transitions[state, action]
-#         total = sum(target_counts.values())
-#         counts.append(total)
-#
-#     probs = np.array(counts) / sum(counts)
-#     policy[state] = probs
