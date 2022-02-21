@@ -273,7 +273,9 @@ class Agent:
                 action = algo.compute_action(state, episode=episode)
                 next_state, reward, done, _ = env.step(action)
                 total_reward += reward
-                my_reward, complete_episodes = self.reward(done, step, complete_episodes=complete_episodes)
+                my_reward, complete_episodes = self.reward(
+                    done, step, complete_episodes=complete_episodes
+                )
                 algo.update(state, action, my_reward, next_state)
                 if done:
                     if episode % 10 == 0:

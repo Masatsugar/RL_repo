@@ -7,13 +7,8 @@ import pandas as pd
 from numpy import ndarray
 from tqdm import tqdm
 
-from bandit_problem.utils import (
-    UCB1,
-    BernoulliArm,
-    EpsilonGreedy,
-    PolicyGradient,
-    ThompsonSampling,
-)
+from bandit_problem.utils import (UCB1, BernoulliArm, EpsilonGreedy,
+                                  PolicyGradient, ThompsonSampling)
 
 
 class MultiArmedBandit:
@@ -148,7 +143,7 @@ if __name__ == "__main__":
     NUM_SIMS = 200
     HORIZON = 2000
 
-    # 問題設定: 腕：7本のうち、あたりは1つ (0.8)とする。
+    # 問題設定: 腕：K本のうち、あたりは1つ (0.9)とする。
     theta = [0.1, 0.1, 0.4, 0.1, 0.2, 0.1, 0.1, 0.1, 0.9, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1]
     # random.shuffle(theta)
     print(theta)
