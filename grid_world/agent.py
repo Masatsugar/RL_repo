@@ -1,5 +1,9 @@
 import random
 from collections import Counter, defaultdict
+from typing import Tuple
+
+import gym
+import numpy as np
 
 
 class Agent:
@@ -110,3 +114,46 @@ class Qlearning(Agent):
                         + self.gamma * self.value_table[target_state, best_action]
                     )
                     self.value_table[state, action] = action_value
+
+
+class Qlearning2:
+    def __init__(self, env, gamma=0.99, alpha=0.9):
+        self.env = env
+        self.gamma = gamma
+        self.alpha = alpha
+        self.state = self.env.reset()
+        self.value_table = defaultdict(float)
+
+    def sample(self) -> Tuple[np.ndarray, int, float, np.ndarray]:
+        action = self.env.action_space.sample()
+        cur_state = self.state
+        new_state, reward, done, _ = self.env.step(action)
+        self.state = self.env.reset() if done else new_state
+        return cur_state, action, reward, new_state
+
+    def update(self, state, action, reward, next_state):
+        max_q, _ = self.best_value_action(next_state)
+        td_target = reward + self.gamma * max_q
+        cur_q = self.value_table[state, action]
+        self.value_table[state, action] = cur_q + self.alpha * (td_target - cur_q)
+
+    def best_value_action(self, state):
+        best_action, best_value = None, None
+        for action in range(self.env.action_space.n):
+            action_value = self.value_table[state, action]
+            if best_value is None or best_value < action_value:
+                best_value = action_value
+                best_action = action
+        return best_value, best_action
+
+    def run_episode(self, env):
+        total_reward = 0.0
+        state = env.reset()
+        while True:
+            _, action = self.best_value_action(state)
+            new_state, reward, done, _ = env.step(action)
+            total_reward += reward
+            if done:
+                break
+            state = new_state
+        return total_reward

@@ -146,11 +146,11 @@ def run(arms: List[BernoulliArm], algo: Any, y_label: str = "rewards") -> None:
 
 if __name__ == "__main__":
     NUM_SIMS = 200
-    HORIZON = 200
+    HORIZON = 2000
 
     # 問題設定: 腕：7本のうち、あたりは1つ (0.8)とする。
-    theta = [0.1, 0.4, 0.1, 0.2, 0.8, 0.1, 0.1]
-    random.shuffle(theta)
+    theta = [0.1, 0.1, 0.4, 0.1, 0.2, 0.1, 0.1, 0.1, 0.9, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1]
+    # random.shuffle(theta)
     print(theta)
     arms = list(map(lambda x: BernoulliArm(x), theta))
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
         EpsilonGreedy(epsilon=0.1),
         EpsilonGreedy(epsilon=0.3),
         UCB1(),
-        ThompsonSampling(),
+        # ThompsonSampling(),
         # PolicyGradient(len(arms))
     ]
     plt.figure(dpi=300)
@@ -172,11 +172,11 @@ if __name__ == "__main__":
     # Another Example
     env = MultiArmedBandit(arms=arms, max_step=HORIZON)
     env.reset()
-    algo = EpsilonGreedy(epsilon=0.2)
+    algo = UCB1()  # EpsilonGreedy(epsilon=0.2)
     env.run(algo=algo)
     print(f"Counts of chosen arms={algo.counts}, \nreward_mean={algo.values}")
 
-    plt.plot(range(0, HORIZON), env.trajectory, 'x-')
+    plt.plot(range(0, HORIZON), env.trajectory, "x-")
     plt.title(algo.__class__.__name__)
     plt.xlabel("step")
     plt.ylabel("arm")
