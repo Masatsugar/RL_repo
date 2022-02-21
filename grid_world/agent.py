@@ -54,7 +54,7 @@ class Vlearning(Agent):
         if random.random() > self.epsilon:
             best_action, best_value = None, None
             for action in range(self.env.action_space.n):
-                action_value = self.compute_action_value(state, action)
+                action_value = self.compute_state_value(state, action)
                 if best_value is None or best_value < action_value:
                     best_value = action_value
                     best_action = action
@@ -62,21 +62,21 @@ class Vlearning(Agent):
         else:
             return self.env.action_space.sample()
 
-    def compute_action_value(self, state, action):
+    def compute_state_value(self, state, action):
         target_counts = self.transitions[state, action]
         total = sum(target_counts.values())
-        action_value = 0.0
+        state_value = 0.0
         for target_state, count in target_counts.items():
             reward = self.reward_table[state, action, target_state]
-            action_value += (count / total) * (
-                reward + self.gamma * self.value_table[target_state]
-            )
-        return action_value
+            state_value += (count / total) * reward + self.gamma * self.value_table[
+                target_state
+            ]
+        return state_value
 
     def value_iteration(self):
         for state in range(self.env.observation_space.n):
             state_values = [
-                self.compute_action_value(state, action)
+                self.compute_state_value(state, action)
                 for action in range(self.env.action_space.n)
             ]
             self.value_table[state] = max(state_values)
@@ -113,7 +113,7 @@ class Qlearning(Agent):
                         reward
                         + self.gamma * self.value_table[target_state, best_action]
                     )
-                    self.value_table[state, action] = action_value
+                self.value_table[state, action] = action_value
 
 
 class Qlearning2:
