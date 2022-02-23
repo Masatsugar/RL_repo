@@ -48,7 +48,10 @@ class MultiArmedBandit:
 
 
 def test_algorithm(
-    algo: Any, arms: List[BernoulliArm], num_sims: int = 200, horizon: int = 200,
+    algo: Any,
+    arms: List[BernoulliArm],
+    num_sims: int = 200,
+    horizon: int = 200,
 ) -> Dict[str, ndarray]:
     """Run an algorithm for evaluation in MAB
 
