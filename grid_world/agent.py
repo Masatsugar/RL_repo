@@ -234,7 +234,7 @@ class MonteCarlo:
             for state, reward in zip(episode["obs"], rewards):
                 self.counts[state] += 1
                 self.gs[state] += reward
-                self.values[state] += self.gs[state] / self.counts[state]
+                self.values[state] = self.gs[state] / self.counts[state]
 
     def select_best_action(self, env):
         best_action, best_value = None, None
