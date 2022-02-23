@@ -1,5 +1,5 @@
 import enum
-from collections import Counter, defaultdict
+import random
 
 import gym
 import matplotlib.pyplot as plt
@@ -148,6 +148,41 @@ class CustomMaze(gym.Env):
                 break
 
         return s_a_history
+
+
+class MarsRover(gym.Env):
+    """
+    Starnford CS234: Reinforcement Learning | Winter 2019 | Lecture 3 - Model-Free Policy Evaluation
+        https://www.youtube.com/watch?v=dRIhrn8cc9w
+    """
+
+    def __init__(self):
+        self.observation_space = gym.spaces.Discrete(7)
+        self.action_space = gym.spaces.Discrete(2)
+        self.start = 3
+        self.goal1 = 0
+        self.goal2 = 6
+        self.state = self.start
+        self.slip_ratio = 0.3
+
+    def reset(self):
+        self.state = self.start
+        return self.state
+
+    def step(self, action):
+        if random.random() > self.slip_ratio:
+            if action == 0:
+                self.state -= 1
+
+            if action == 1:
+                self.state += 1
+
+        if self.state == self.goal1:
+            return self.state, 1.0, True, {}
+        elif self.state == self.goal2:
+            return self.state, 10.0, True, {}
+        else:
+            return self.state, 0.0, False, {}
 
 
 if __name__ == "__main__":

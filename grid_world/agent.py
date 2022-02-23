@@ -4,6 +4,9 @@ from typing import Optional, Tuple
 
 import gym
 import numpy as np
+import scipy
+
+from grid_world.env import MarsRover
 
 
 class Agent:
@@ -179,3 +182,76 @@ class Qlearning2:
             state = next_state
 
         return total_reward
+
+
+class MonteCarlo:
+    def __init__(self, env, gamma=0.99):
+        self.env = env
+        self.gamma = gamma
+        self.episode = 0
+
+        self.counts = defaultdict(float)
+        self.gs = defaultdict(float)
+        self.values = defaultdict(float)
+        self.history = None
+        self.episodes = []
+
+    def reset(self):
+        self.history = {
+            "obs": [],
+            "actions": [],
+            "rewards": [],
+            "done": [],
+        }
+
+    def play_episode(self):
+        self.reset()
+        env.reset()
+        while True:
+            action = self.env.action_space.sample()
+            obs, reward, done, _ = self.env.step(action)
+            self.set_state(obs, action, reward, done)
+            if done:
+                self.episode += 1
+                self.episodes.append(self.history.copy())
+                self.reset()
+                break
+
+    def set_state(self, state, action, reward, done):
+        self.history["obs"].append(state)
+        self.history["actions"].append(action)
+        self.history["rewards"].append(reward)
+        self.history["done"].append(done)
+
+    def discount_cumsum(self, rewards):
+        return scipy.signal.lfilter(
+            [1], [1, float(-self.gamma)], rewards[::-1], axis=0
+        )[::-1]
+
+    def policy_evaluation(self):
+        for episode in self.episodes:
+            rewards = self.discount_cumsum(episode["rewards"])
+            for state, reward in zip(episode["obs"], rewards):
+                self.counts[state] += 1
+                self.gs[state] += reward
+                self.values[state] += self.gs[state] / self.counts[state]
+
+    def select_best_action(self, env):
+        best_action, best_value = None, None
+        for action in env.action_space.n:
+            state, reward, done, _ = env.step(action)
+            state_value = self.values[state]
+            if best_value is None or best_value < state_value:
+                best_value = state_value
+                best_action = action
+        return best_action
+
+
+if __name__ == "__main__":
+    env = gym.make("FrozenLake-v1")
+    env = MarsRover()
+    mc = MonteCarlo(env)
+    for i in range(10):
+        mc.play_episode()
+
+    mc.policy_evaluation()
