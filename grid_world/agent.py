@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 
 import gym
 import numpy as np
-import scipy
+import scipy.signal
 
 from grid_world.env import MarsRover
 
@@ -122,13 +122,14 @@ class Qlearning(Agent):
                 self.value_table[state, action] = action_value
 
 
-class Qlearning2:
+class TDlearning:
     def __init__(self, env, gamma=0.99, alpha=0.9, epsilon=0.1):
         self.env = env
         self.gamma = gamma
         self.alpha = alpha
         self.epsilon = epsilon
         self.state = self.env.reset()
+        self.action_value_table = defaultdict(float)
         self.value_table = defaultdict(float)
         self.episode = 0
 
@@ -140,15 +141,25 @@ class Qlearning2:
         return cur_state, action, reward, new_state
 
     def update(self, state, action, reward, next_state):
+        self.update_q(state, action, reward, next_state)
+        self.update_v(state, action, reward, next_state)
+
+    def update_q(self, state, action, reward, next_state):
         max_q, _ = self.best_value_action(next_state)
         td_target = reward + self.gamma * max_q
-        cur_q = self.value_table[state, action]
-        self.value_table[state, action] = cur_q + self.alpha * (td_target - cur_q)
+        cur_q = self.action_value_table[state, action]
+        self.action_value_table[state, action] = cur_q + self.alpha * (td_target - cur_q)
+
+    def update_v(self, state, action, reward, next_state):
+        cur_v = self.value_table[state]
+        next_v = self.value_table[next_state]
+        td_target = reward + self.gamma * next_v
+        self.value_table[state] = cur_v + self.alpha * (td_target - cur_v)
 
     def best_value_action(self, state):
         best_action, best_value = None, None
         for action in range(self.env.action_space.n):
-            action_value = self.value_table[state, action]
+            action_value = self.action_value_table[state, action]
             if best_value is None or best_value < action_value:
                 best_value = action_value
                 best_action = action
@@ -157,7 +168,7 @@ class Qlearning2:
     def compute_action(self, state, episode: Optional[int] = None):
         if episode is not None:
             epsilon = 0.5 * (1 / (episode + 1))
-            self.epsilon = episode
+            self.episode = episode
         else:
             epsilon = self.epsilon
 
@@ -176,6 +187,7 @@ class Qlearning2:
             action = self.compute_action(state, episode=episode)
             next_state, reward, done, _ = env.step(action)
             self.update(state, action, reward, next_state)
+            self.update_q(state, action, reward, next_state)
             total_reward += reward
             if done:
                 break
@@ -192,7 +204,7 @@ class MonteCarlo:
 
         self.counts = defaultdict(float)
         self.gs = defaultdict(float)
-        self.values = defaultdict(float)
+        self.value_table = defaultdict(float)
         self.history = None
         self.episodes = []
 
@@ -204,18 +216,19 @@ class MonteCarlo:
             "done": [],
         }
 
-    def play_episode(self):
+    def run_episode(self):
         self.reset()
-        env.reset()
+        obs = env.reset()
         while True:
             action = self.env.action_space.sample()
-            obs, reward, done, _ = self.env.step(action)
+            next_obs, reward, done, _ = self.env.step(action)
             self.set_state(obs, action, reward, done)
             if done:
                 self.episode += 1
                 self.episodes.append(self.history.copy())
                 self.reset()
                 break
+            obs = next_obs
 
     def set_state(self, state, action, reward, done):
         self.history["obs"].append(state)
@@ -234,13 +247,13 @@ class MonteCarlo:
             for state, reward in zip(episode["obs"], rewards):
                 self.counts[state] += 1
                 self.gs[state] += reward
-                self.values[state] = self.gs[state] / self.counts[state]
+                self.value_table[state] = self.gs[state] / self.counts[state]
 
     def select_best_action(self, env):
         best_action, best_value = None, None
         for action in env.action_space.n:
             state, reward, done, _ = env.step(action)
-            state_value = self.values[state]
+            state_value = self.value_table[state]
             if best_value is None or best_value < state_value:
                 best_value = state_value
                 best_action = action
@@ -248,10 +261,20 @@ class MonteCarlo:
 
 
 if __name__ == "__main__":
-    env = gym.make("FrozenLake-v1")
+    # env = gym.make("FrozenLake-v1")
     env = MarsRover()
-    mc = MonteCarlo(env)
+    mc = MonteCarlo(env, gamma=1.0)
+
     for i in range(10):
-        mc.play_episode()
+        mc.run_episode()
 
     mc.policy_evaluation()
+    print(mc.value_table)
+
+    env = MarsRover()
+    td = TDlearning(env)
+    for i in range(100):
+        td.update(*td.sample())
+
+    print(td.value_table)
+
