@@ -3,7 +3,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 from ray.rllib import SampleBatch
+from ray.rllib.evaluation.postprocessing import Postprocessing
 from ray.rllib.models.modelv2 import restore_original_dimensions
+from torch.distributions.categorical import Categorical
 
 from cart_pole.episodes import Episode
 from cart_pole.utils import lazy_tensor_dict
@@ -16,12 +18,11 @@ class Policy(nn.Module):
         self.observation_space = observation_space
         self.action_space = action_space
         self.shared_layer = nn.Sequential(
-            nn.Linear(observation_space.shape[0], 32),
+            nn.Linear(observation_space.shape[0], 64),
             nn.ReLU(),
-            nn.Linear(32, 32),
         )
-        self.actor = nn.Sequential(nn.Linear(32, out_features=action_space.n))
-        self.critic = nn.Sequential(nn.Linear(32, out_features=1))
+        self.actor = nn.Sequential(nn.Linear(64, out_features=action_space.n))
+        self.critic = nn.Sequential(nn.Linear(64, out_features=1))
         self.state_value = None
         self.softmax = nn.Softmax(dim=-1)
 
@@ -60,10 +61,6 @@ class Policy(nn.Module):
 
 
 def run():
-    """Cross Entropy Method: versatile Monte Carlo technique.
-    https://people.smp.uq.edu.au/DirkKroese/ps/eormsCE.pdf
-
-    """
     env = gym.make("CartPole-v1")
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -72,25 +69,35 @@ def run():
         action_space=env.action_space,
         config=None,
     )
-    xentropy = nn.CrossEntropyLoss()
+    loss_func = nn.MSELoss()
     if device == "cuda":
         policy = policy.cuda()
-        xentropy = xentropy.cuda()
+        loss_func = loss_func.cuda()
 
-    optimizer = torch.optim.Adam(policy.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(policy.parameters(), lr=0.001)
     optimizer.zero_grad()
-    dataset = Episode(env, policies=policy, percentile=70)
-    trainloader = dataset.loader(batch_size=16)
-    for i, batch in enumerate(trainloader):
-        input_dict, reward_bound, reward_mean = dataset.filter(batch)
-        action_scores_v = policy(input_dict)
-        loss_v = xentropy(action_scores_v, input_dict["actions"])
-        loss_v.backward()
+    episode = Episode(env, policies=policy)
+    trainloader = episode.loader(batch_size=16)
+    for i, train_batch in enumerate(trainloader):
+        # input_dict, _, _ = episode.filter(train_batch)
+        input_dict = episode.to_tensor(train_batch)
+
+        logits = policy(input_dict)
+        probs = policy.softmax(logits)
+        action_dist = Categorical(probs)
+
+        # L = -E[ log(pi(a|s)) * A]
+        log_probs = action_dist.log_prob(input_dict[SampleBatch.ACTIONS])
+        policy_loss = -torch.mean(log_probs * input_dict[Postprocessing.ADVANTAGES])
+
+        # Critic Loss
+        # loss_v = loss_func( policy.state_value, train_batch["advantages"])
+        policy_loss.backward()
         optimizer.step()
         print(
-            f"{i}: loss={loss_v.item():.3f}, reward_mean={reward_mean:.1f}, reward_bound={reward_bound:.1f}"
+            f"{i}: loss={policy_loss.item():.3f}, reward_mean={episode.reward_mean:.1f}"
         )
-        if reward_mean >= 200:
+        if episode.reward_mean >= 200:
             print("Solved")
             break
 
