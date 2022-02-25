@@ -2,7 +2,7 @@ from typing import List
 
 from matplotlib import pyplot as plt
 
-from bandit_problem.utils import BernoulliArm, UCB1
+from bandit_problem.utils import UCB1, BernoulliArm
 from grid_world.agent import MonteCarlo
 
 

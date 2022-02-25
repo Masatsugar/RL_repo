@@ -1,6 +1,6 @@
 import gym
 
-from grid_world.agent import Qlearning, Qlearning2, Vlearning
+from grid_world.agent import Qlearning, Vlearning
 from grid_world.env import CustomMaze
 
 if __name__ == "__main__":
