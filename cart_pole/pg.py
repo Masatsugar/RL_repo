@@ -18,8 +18,7 @@ class Policy(nn.Module):
         self.observation_space = observation_space
         self.action_space = action_space
         self.shared_layer = nn.Sequential(
-            nn.Linear(observation_space.shape[0], 64),
-            nn.ReLU(),
+            nn.Linear(observation_space.shape[0], 64), nn.ReLU(),
         )
         self.actor = nn.Sequential(nn.Linear(64, out_features=action_space.n))
         self.critic = nn.Sequential(nn.Linear(64, out_features=1))
@@ -77,7 +76,7 @@ def run():
     optimizer = torch.optim.Adam(policy.parameters(), lr=0.001)
     optimizer.zero_grad()
     episode = Episode(env, policies=policy)
-    trainloader = episode.loader(batch_size=16)
+    trainloader = episode.loader(batch_size=32)
     for i, train_batch in enumerate(trainloader):
         # input_dict, _, _ = episode.filter(train_batch)
         input_dict = episode.to_tensor(train_batch)
@@ -97,7 +96,7 @@ def run():
         print(
             f"{i}: loss={policy_loss.item():.3f}, reward_mean={episode.reward_mean:.1f}"
         )
-        if episode.reward_mean >= 200:
+        if episode.reward_mean >= 400:
             print("Solved")
             break
 

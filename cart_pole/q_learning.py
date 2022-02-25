@@ -48,7 +48,7 @@ class QTable:
             for x, y in zip(self.bound[:, 0], self.bound[:, 1])
         ]
         digit = [np.digitize(obs, lst) for obs, lst in zip(observation, bins_list)]
-        return sum([dig * (self.num_digit**i) for i, dig in enumerate(digit)])
+        return sum([dig * (self.num_digit ** i) for i, dig in enumerate(digit)])
 
     def __getitem__(self, idx):
         return self.q_table[idx]

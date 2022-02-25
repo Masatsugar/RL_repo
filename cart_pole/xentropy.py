@@ -16,9 +16,7 @@ class Policy(nn.Module):
         self.observation_space = observation_space
         self.action_space = action_space
         self.shared_layer = nn.Sequential(
-            nn.Linear(observation_space.shape[0], 32),
-            nn.ReLU(),
-            nn.Linear(32, 32),
+            nn.Linear(observation_space.shape[0], 32), nn.ReLU(), nn.Linear(32, 32),
         )
         self.actor = nn.Sequential(nn.Linear(32, out_features=action_space.n))
         self.critic = nn.Sequential(nn.Linear(32, out_features=1))

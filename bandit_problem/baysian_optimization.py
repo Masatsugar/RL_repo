@@ -12,14 +12,14 @@ noise = 0.0
 
 
 def f(x, noise=noise):
-    return -np.sin(3 * x) - x**2 + 0.7 * x + noise * np.random.randn(*x.shape)
+    return -np.sin(3 * x) - x ** 2 + 0.7 * x + noise * np.random.randn(*x.shape)
 
 
 def f(x, noise=noise):
     return (
         np.exp(-((x - 2) ** 2))
         + np.exp(-((x - 6) ** 2) / 10)
-        + 1 / (x**2 + 1)
+        + 1 / (x ** 2 + 1)
         + noise * np.random.randn(*x.shape)
     )
 
@@ -280,12 +280,7 @@ for i in range(n_iter):
 # plt.show()
 
 
-bo = BayesianOptimization(
-    f=f,
-    pbounds={"x": (-2, 10)},
-    verbose=0,
-    random_state=987234,
-)
+bo = BayesianOptimization(f=f, pbounds={"x": (-2, 10)}, verbose=0, random_state=987234,)
 
 # bo.maximize(n_iter=10, acq="ucb", kappa=0.1)
 # plot_bo(f, bo)

@@ -20,19 +20,26 @@ class ActionSelector:
         self.counts = counts
         self.values = values
 
-    def initialize(self, n_arms):
+    def reset(self, n_arms):
         self.counts = np.zeros(n_arms)
         self.values = np.zeros(n_arms)
 
     def select_arm(self):
         raise NotImplementedError
 
-    def update(self, chosen_arm, reward):
+    def update(self, chosen_arm: int, reward: float) -> None:
+        """Incremental Monte Carlo
+
+            N(s) = N(s) + 1
+            V(s) = V(s) + alpha ( G(s) - V(s) )
+            alpha = 1 / N(s)
+
+        If alpha is 1/N, then incremental MC is equivalent to every step MC.
+        """
         self.counts[chosen_arm] = self.counts[chosen_arm] + 1
-        n = self.counts[chosen_arm]
-        value = self.values[chosen_arm]
-        new_value = ((n - 1) / float(n)) * value + (1 / float(n)) * reward
-        self.values[chosen_arm] = new_value
+        self.values[chosen_arm] += (reward - self.values[chosen_arm]) / float(
+            self.counts[chosen_arm]
+        )
 
 
 class EpsilonGreedy(ActionSelector):
@@ -69,7 +76,7 @@ class ThompsonSampling(ActionSelector):
         self.alpha = None
         self.beta = None
 
-    def initialize(self, n_arms):
+    def reset(self, n_arms):
         self.counts = np.zeros(n_arms)
         self.values = np.zeros(n_arms)
         self.alpha = np.ones(n_arms)
@@ -127,7 +134,7 @@ class PolicyGradient(ActionSelector):
         self.beta = 1.0
         self.eta = 0.10
 
-    def initialize(self, n_arms):
+    def reset(self, n_arms):
         self.counts = np.zeros(n_arms)
         self.values = np.zeros(n_arms)
 

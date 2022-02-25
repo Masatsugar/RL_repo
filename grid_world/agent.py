@@ -220,7 +220,7 @@ class MonteCarlo:
 
     def run_episode(self):
         self.reset()
-        obs = env.reset()
+        obs = self.env.reset()
         while True:
             action = self.env.action_space.sample()
             next_obs, reward, done, _ = self.env.step(action)

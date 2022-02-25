@@ -11,60 +11,21 @@ from bandit_problem.utils import (UCB1, BernoulliArm, EpsilonGreedy,
                                   PolicyGradient, ThompsonSampling)
 
 
-class MultiArmedBandit:
-    def __init__(self, arms: List[BernoulliArm], max_step: int = 200):
-        self.arms = arms
-        self.max_step = max_step
-        self.env_step = 0
-        self.cumulative_reward = 0
-        self.trajectory = []
-
-    def reset(self):
-        self.env_step = 0
-        self.cumulative_reward = 0
-
-    def step(self, action):
-        self.env_step += 1
-        reward = self.reward(action)
-        self.cumulative_reward += reward
-        done = True if self.env_step > self.max_step else False
-        return None, reward, done, {}
-
-    def reward(self, action):
-        return self.arms[action].draw()
-
-    def run(self, algo):
-        self.reset()
-        algo.initialize(len(self.arms))
-        for i in range(self.max_step):
-            action = algo.select_arm()
-            _, reward, done, _ = self.step(action)
-            self.trajectory.append(action)
-            algo.update(action, reward)
-            if done:
-                break
-        print(f"done: reward mean={self.cumulative_reward / self.max_step}")
-        return self
-
-
 def test_algorithm(
-    algo: Any,
-    arms: List[BernoulliArm],
-    num_sims: int = 200,
-    horizon: int = 200,
+    policy: Any, arms: List[BernoulliArm], num_sims: int = 200, horizon: int = 200,
 ) -> Dict[str, ndarray]:
     """Run an algorithm for evaluation in MAB
 
     Parameters
     ----------
-    algo
-        RL Algorithm for MAB: EpsilonGreedy, UCB1, ThompsonSampling, or Policy Gradient.
+    policy
+        A policy of action for MAB: EpsilonGreedy, UCB1, ThompsonSampling, or Softmax.
     arms
-        Bernoulli Arms instance
+        Bernoulli arm's instance list.
     num_sims
         The number of simulations (episodes in RL settings)
     horizon
-        The number of drawing MAB.
+        The number of drawing arms in MAB.
 
     Returns
         Dict: {sim_nums, times, chosen_arms, rewards, cumulative_rewards}
@@ -80,7 +41,7 @@ def test_algorithm(
 
     for sim in tqdm(range(num_sims)):
         sim += 1
-        algo.initialize(len(arms))
+        policy.reset(len(arms))
         for step in range(horizon):
             step += 1
             index = (sim - 1) * horizon + step - 1
@@ -88,7 +49,7 @@ def test_algorithm(
             times[index] = step
 
             # select an arm and obtain the reward.
-            chosen_arm = algo.select_arm()
+            chosen_arm = policy.select_arm()
             reward = arms[chosen_arm].draw()
 
             # store the choice.
@@ -128,7 +89,7 @@ def run(arms: List[BernoulliArm], algo: Any, y_label: str = "rewards") -> None:
         label_name += f"({algo.epsilon})"
     print(label_name)
     n_arms = len(arms)
-    algo.initialize(n_arms)
+    algo.reset(n_arms)
     results = test_algorithm(algo, arms, num_sims=NUM_SIMS, horizon=HORIZON)
     df = pd.DataFrame(results)
     grouped = df[y_label].groupby(df["times"])
@@ -153,7 +114,7 @@ if __name__ == "__main__":
     arms = list(map(lambda x: BernoulliArm(x), theta))
 
     # Set Algorithms
-    algo_list = [
+    policy_list = [
         EpsilonGreedy(epsilon=0.1),
         EpsilonGreedy(epsilon=0.3),
         UCB1(),
@@ -161,21 +122,8 @@ if __name__ == "__main__":
         # PolicyGradient(len(arms))
     ]
     plt.figure(dpi=300)
-    for algo in algo_list:
-        run(arms, algo)
+    for policy in policy_list:
+        run(arms, policy)
     # plt.savefig("mab.png")
     plt.show()
     plt.clf()
-
-    # Another Example
-    env = MultiArmedBandit(arms=arms, max_step=HORIZON)
-    env.reset()
-    algo = UCB1()  # EpsilonGreedy(epsilon=0.2)
-    env.run(algo=algo)
-    print(f"Counts of chosen arms={algo.counts}, \nreward_mean={algo.values}")
-
-    plt.plot(range(0, HORIZON), env.trajectory, "x-")
-    plt.title(algo.__class__.__name__)
-    plt.xlabel("step")
-    plt.ylabel("arm")
-    plt.show()
