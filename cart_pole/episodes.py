@@ -54,14 +54,14 @@ class Episode:
 
             obs = next_obs
 
-    def to_tensor(self, batch):
+    def to_tensor(self, batch, use_gae=False, use_critic=False):
         batch_list = [
             compute_advantages(
                 rollout=sample_batch,
                 last_r=0.0,
                 gamma=self.gamma,
-                use_gae=False,
-                use_critic=False,
+                use_gae=use_gae,
+                use_critic=use_critic,
             )
             for sample_batch in batch.split_by_episode()
         ]

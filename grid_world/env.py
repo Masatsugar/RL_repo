@@ -185,6 +185,55 @@ class MarsRover(gym.Env):
             return self.state, 0.0, False, {}
 
 
+class AliasedGridWorld(gym.Env):
+    """
+    Grid world
+    ----------
+        | S0 | S1 | S2 | S3 | S4 |
+        | S5 | S6 | S7 | S8 | S9 |
+
+    """
+
+    def __init__(self, start=0):
+        self.start = start
+        self.state = self.start
+        self.observation_space = gym.spaces.Discrete(8)
+        self.action_space = gym.spaces.Discrete(4)
+        self.goal = 7
+        self.fire = [5, 9]
+        self.wall = [6, 8]
+
+    def reset(self):
+        self.state = self.start
+        return self.state
+
+    def step(self, action):
+        if action == Action.Up:
+            if self.state in self.fire:
+                self.state -= 5
+            return self.state, 0.0, False, {}
+
+        elif action == Action.Down:
+            if self.state in [0, 2, 4]:
+                self.state += 5
+            if self.state == self.goal:
+                return self.state, 1.0, True, {}
+
+            if self.state in self.fire:
+                return self.state, -1.0, True, {}
+
+            return self.state, 0.0, False, {}
+
+        elif action == Action.Right:
+            if self.state in [0, 1, 2, 3]:
+                self.state += 1
+            return self.state, 0.0, False, {}
+        else:
+            if self.state in [1, 2, 3, 4]:
+                self.state -= 1
+            return self.state, 0.0, False, {}
+
+
 if __name__ == "__main__":
     env = CustomMaze()
     env.reset()

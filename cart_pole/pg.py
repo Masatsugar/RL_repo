@@ -10,6 +10,27 @@ from torch.distributions.categorical import Categorical
 from cart_pole.episodes import Episode
 from cart_pole.utils import lazy_tensor_dict
 
+FAKE_BATCH = SampleBatch(
+    {
+        SampleBatch.OBS: np.array(
+            [[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8], [0.9, 1.0, 1.1, 1.2]],
+            dtype=np.float32,
+        ),
+        SampleBatch.ACTIONS: np.array([0, 1, 1]),
+        SampleBatch.PREV_ACTIONS: np.array([0, 1, 1]),
+        SampleBatch.REWARDS: np.array([1.0, -1.0, 0.5], dtype=np.float32),
+        SampleBatch.PREV_REWARDS: np.array([1.0, -1.0, 0.5], dtype=np.float32),
+        SampleBatch.DONES: np.array([False, False, True]),
+        SampleBatch.VF_PREDS: np.array([0.5, 0.6, 0.7], dtype=np.float32),
+        SampleBatch.ACTION_DIST_INPUTS: np.array(
+            [[-2.0, 0.5], [-3.0, -0.3], [-0.1, 2.5]], dtype=np.float32
+        ),
+        SampleBatch.ACTION_LOGP: np.array([-0.5, -0.1, -0.2], dtype=np.float32),
+        SampleBatch.EPS_ID: np.array([0, 0, 0]),
+        SampleBatch.AGENT_INDEX: np.array([0, 0, 0]),
+    }
+)
+
 
 class Policy(nn.Module):
     def __init__(self, observation_space, action_space, config):
@@ -31,6 +52,9 @@ class Policy(nn.Module):
         logits = self.actor(x)
         self.state_value = self.critic(x)
         return logits
+
+    def value_function(self):
+        return self.state_value
 
     def obs_to_input_dict(self, obs):
         _obs_batch = lazy_tensor_dict(obs, device=self.device)
@@ -79,19 +103,27 @@ def run():
     trainloader = episode.loader(batch_size=32)
     for i, train_batch in enumerate(trainloader):
         # input_dict, _, _ = episode.filter(train_batch)
-        input_dict = episode.to_tensor(train_batch)
-
+        input_dict = episode.to_tensor(train_batch)  # , use_gae=True, use_critic=True)
         logits = policy(input_dict)
         probs = policy.softmax(logits)
         action_dist = Categorical(probs)
+        state_value = policy.value_function().flatten()
 
         # L = -E[ log(pi(a|s)) * A]
         log_probs = action_dist.log_prob(input_dict[SampleBatch.ACTIONS])
-        policy_loss = -torch.mean(log_probs * input_dict[Postprocessing.ADVANTAGES])
+
+        # REINFORCE
+        # policy_loss = -torch.mean(log_probs * input_dict[Postprocessing.ADVANTAGES])
+
+        # Actor loss
+        policy_loss = -torch.mean(log_probs * state_value)
 
         # Critic Loss
-        # loss_v = loss_func( policy.state_value, train_batch["advantages"])
-        policy_loss.backward()
+        value_loss = loss_func(state_value, input_dict[Postprocessing.ADVANTAGES])
+
+        loss = policy_loss + value_loss
+
+        loss.backward()
         optimizer.step()
         print(
             f"{i}: loss={policy_loss.item():.3f}, reward_mean={episode.reward_mean:.1f}"

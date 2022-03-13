@@ -1,6 +1,7 @@
 """
 Mcts implementation modified from
 https://github.com/brilee/python_uct/blob/master/numpy_impl.py
+https://github.com/ray-project/ray/blob/master/rllib/contrib/alpha_zero/core/mcts.py
 """
 from collections import defaultdict
 from typing import Tuple
@@ -12,6 +13,8 @@ from tqdm import tqdm
 from cart_pole.env import CartPole
 from cart_pole.q_learning import QTable
 
+from sklearn.linear_model import SGDClassifier, SGDRegressor
+
 
 class Node:
     def __init__(self, action, obs, done, reward, state, mcts, parent=None):
@@ -20,7 +23,6 @@ class Node:
         self.is_expanded = False
         self.parent = parent
         self.children = {}
-
         self.action_space_size = self.env.action_space.n
 
         self.child_total_value = np.zeros(
@@ -35,7 +37,6 @@ class Node:
         self.done = done
         self.state = state
         self.obs = obs
-
         self.mcts = mcts
 
     def __repr__(self):
@@ -71,6 +72,27 @@ class Node:
         )
 
     def best_action(self):
+        """Returns best action based on PUCB.
+
+        Predictive UCB:
+            PUCB(s) =  Q + c * P * sqrt(N) / (1 + t)
+            Q: W / (1 + N)
+            W: State action value calculated form critics network.
+            P: child prior probability calculated from an actor network.
+            N: total path count (N = sum(t)) .
+            t: path count in node.
+
+        Original UCB:
+            UCB = Q + sqrt(c * log(t) / N )
+
+        Q is often used as cumulative rewards in MC as follows:
+            Q = sum(r) / N
+
+        Returns
+        -------
+            best action
+
+        """
         return np.argmax(self.child_Q() + self.mcts.c_puct * self.child_U())
 
     def select(self):
@@ -160,9 +182,9 @@ class Policy:
     def update(self, state, node):
         if node.action:
             action_value = node.state[2] / (1 + node.child_number_visits[node.action])
-            self.q_table[state, action] = action_value
+            self.q_table[state, node.action] = action_value
             if action_value > 0:
-                print(action_value, state, action)
+                print(action_value, state, node.action)
 
 
 if __name__ == "__main__":
@@ -170,7 +192,7 @@ if __name__ == "__main__":
     env.reset()
     parent = RootParentNode(env)
     policy = Policy(env)
-    mcts = MCTS(policy, num_sims=10000)
+    mcts = MCTS(policy, num_sims=100)
     node = Node(
         state=policy.env.get_state(),
         obs=policy.env.reset(),
@@ -183,3 +205,8 @@ if __name__ == "__main__":
 
     # child_priors, value = policy.compute_priors_and_value(leaf)
     tree_policy, action, children = mcts.compute_action(node)
+
+    # Train value function and child prior with linear models.
+    # value_function = SGDRegressor()
+    # prior_function = SGDClassifier()
+

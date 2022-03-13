@@ -191,9 +191,7 @@ class TDlearning:
         max_q, _ = self.best_action_value(next_state)
         td_target = reward + self.gamma * max_q
         cur_q = self.action_values[state, action]
-        self.action_values[state, action] = cur_q + self.alpha * (
-            td_target - cur_q
-        )
+        self.action_values[state, action] = cur_q + self.alpha * (td_target - cur_q)
 
     def update_v(self, state, action, reward, next_state):
         cur_v = self.state_values[state]
