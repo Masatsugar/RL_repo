@@ -113,17 +113,19 @@ def run():
         log_probs = action_dist.log_prob(input_dict[SampleBatch.ACTIONS])
 
         # REINFORCE
-        # policy_loss = -torch.mean(log_probs * input_dict[Postprocessing.ADVANTAGES])
+        policy_loss = -torch.mean(log_probs * input_dict[Postprocessing.ADVANTAGES])
 
         # Actor loss
-        policy_loss = -torch.mean(log_probs * state_value)
+        # policy_loss = -torch.mean(log_probs * state_value)
 
         # Critic Loss
-        value_loss = loss_func(state_value, input_dict[Postprocessing.ADVANTAGES])
+        # value_loss = loss_func(state_value, input_dict[Postprocessing.ADVANTAGES])
 
-        loss = policy_loss + value_loss
+        # Entropy (regluarization)
 
-        loss.backward()
+        # loss = policy_loss + value_loss
+
+        policy_loss.backward()
         optimizer.step()
         print(
             f"{i}: loss={policy_loss.item():.3f}, reward_mean={episode.reward_mean:.1f}"

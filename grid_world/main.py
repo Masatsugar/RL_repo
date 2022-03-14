@@ -1,16 +1,13 @@
 import gym
 
 from grid_world.agent import Qlearning, Vlearning
-from grid_world.env import AliasedGridWorld, CustomMaze
 
 if __name__ == "__main__":
     env = gym.make("FrozenLake-v1")
     test_env = gym.make("FrozenLake-v1")
-    # env = CustomMaze()
-    env = AliasedGridWorld()
 
     agent = Vlearning(env, gamma=0.99, epsilon=0.0)
-    agent = Qlearning(env, gamma=0.99, epsilon=0.0)
+    # agent = Qlearning(env, gamma=0.99, epsilon=0.0)
     iter_n = 0
     best_reward = 0.0
     test_episode = 20
