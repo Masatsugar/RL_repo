@@ -32,7 +32,7 @@ def test_algorithm(
     -------
     """
 
-    # Initialize variables with zeros.
+    # Initializes variables with zeros.
     chosen_arms = np.zeros(num_sims * horizon)
     rewards = np.zeros(num_sims * horizon)
     cumulative_rewards = np.zeros(num_sims * horizon)
@@ -48,19 +48,19 @@ def test_algorithm(
             sim_nums[index] = sim
             times[index] = step
 
-            # select an arm and obtain the reward.
+            # selects an arm and obtain the reward.
             chosen_arm = policy.select_arm()
             reward = arms[chosen_arm].draw()
 
-            # store the choice.
+            # stores the choice.
             chosen_arms[index] = chosen_arm
             rewards[index] = reward
             cumulative_rewards[index] = (
                 reward if step == 1 else cumulative_rewards[index - 1] + reward
             )
 
-            # update algorithm
-            algo.update(chosen_arm, reward)
+            # updates algorithm
+            policy.update(chosen_arm, reward)
 
     return {
         "sim_nums": sim_nums,
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     print(theta)
     arms = list(map(lambda x: BernoulliArm(x), theta))
 
-    # Set Algorithms
+    # Sets any policies (exploration and exploitation methods)
     policy_list = [
         EpsilonGreedy(epsilon=0.1),
         EpsilonGreedy(epsilon=0.3),
