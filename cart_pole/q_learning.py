@@ -1,3 +1,4 @@
+from collections import Counter
 from queue import Queue
 from typing import Tuple
 
@@ -6,7 +7,7 @@ import numpy as np
 
 
 class QTable:
-    def __init__(self, env, num_digit=6):
+    def __init__(self, env, num_digit=6, init_qtable="random"):
         """
         Observation bounds:
             cart_x = (-2.4, 2.4)
@@ -16,14 +17,18 @@ class QTable:
         """
         self.env = env
         self.num_digit = num_digit
-        # self.q_table = np.zeros(
-        #     shape=(num_digit ** env.observation_space.shape[0], env.action_space.n)
-        # )
-        self.q_table = np.random.uniform(
-            low=0,
-            high=1,
-            size=(num_digit ** env.observation_space.shape[0], env.action_space.n),
-        )
+
+        if init_qtable == "random":
+            self.q_table = np.random.uniform(
+                low=0,
+                high=1,
+                size=(num_digit ** env.observation_space.shape[0], env.action_space.n),
+            )
+        else:
+            self.q_table = np.zeros(
+                shape=(num_digit ** env.observation_space.shape[0], env.action_space.n)
+            )
+
         self.bound = np.array([[-2.4, 2.4], [-3.0, 3.0], [-0.5, 0.5], [-2.0, 2.0]])
         self.shape = self.q_table.shape
 
@@ -79,9 +84,9 @@ class Action:
 
 
 class QLearning:
-    def __init__(self, env, num_digit, alpha=0.5, gamma=0.99):
+    def __init__(self, env, num_digit, alpha=0.5, gamma=0.99, init_qtable="random"):
         self.action = Action(env)
-        self.q_table = QTable(env, num_digit=num_digit)
+        self.q_table = QTable(env, num_digit=num_digit, init_qtable=init_qtable)
         self.alpha = alpha
         self.gamma = gamma
 
@@ -167,6 +172,67 @@ class Sarsa:
         return self.action.epsilon_greedy(
             q_table=self.q_table, state=state, episode=episode
         )
+
+
+class DoubleQLearning:
+    """
+    Double Q-learning, Hado van Hasselt, NIPS2010
+        https://proceedings.neurips.cc/paper/2010/file/091d584fced301b442654dd8c23b3fc9-Paper.pdf
+
+    """
+
+    def __init__(
+        self, env, num_digit, alpha=1.0, gamma=0.99, degree=1.0, init_qtable="random"
+    ):
+        self.alpha = alpha
+        self.gamma = gamma
+        self.degree = degree
+        self.qa = QLearning(env, num_digit, alpha, gamma, init_qtable)
+        self.qb = QLearning(env, num_digit, alpha, gamma, init_qtable)
+        self.counter = Counter()
+
+    def update(self, state, action, reward, next_state):
+        state = self.qa.q_table.digitize(state)
+        next_state = self.qa.q_table.digitize(next_state)
+        self.counter[state, action] += 1
+        alpha = self.alpha / np.power(self.counter[state, action], self.degree)
+        if np.random.random() >= 0.5:
+            # update Q-A
+            cur_q = self.qa.q_table[state, action]
+            action = np.argmax(self.qa.q_table[next_state])
+            td_target = (
+                reward + self.gamma * self.qb.q_table[next_state, action]
+            )  # use QB!
+            self.qa.q_table[state, action] = cur_q + alpha * (td_target - cur_q)
+        else:
+            # update Q-B
+            cur_q = self.qb.q_table[state, action]
+            action = np.argmax(self.qb.q_table[next_state])
+            td_target = (
+                reward + self.gamma * self.qa.q_table[next_state, action]
+            )  # use QA!
+            self.qb.q_table[state, action] = cur_q + alpha * (td_target - cur_q)
+
+    def compute_action(self, observation, episode):
+        state = self.qa.q_table.digitize(observation)
+        if max(self.qa.q_table[state]) > max(self.qb.q_table[state]):
+            q_table = self.qa.q_table[state]
+        else:
+            q_table = self.qb.q_table[state]
+        # q_table = self.qa.q_table[state] + self.qb.q_table[state]
+        num_actions = len(q_table)
+        n_visited_states = sum(
+            [self.counter[state, action] for action in range(num_actions)]
+        )
+        if n_visited_states == 0:
+            epsilon = 1.0
+        else:
+            epsilon = 1.0 / np.sqrt(n_visited_states)
+        if np.random.uniform(0, 1) >= epsilon:
+            action = np.argmax(q_table)
+        else:
+            action = np.random.choice(num_actions)
+        return action
 
 
 class Agent:
@@ -295,4 +361,5 @@ if __name__ == "__main__":
     q_learning = QLearning(env, num_digit=9, alpha=0.5, gamma=0.99)
     sarsa = Sarsa(env, num_digit=5, alpha=0.5, gamma=0.99)
     agent = Agent(env, episode=1000)
-    agent.play_episodes(sarsa)
+    double_q_learning = DoubleQLearning(env, num_digit=6, alpha=1.0, gamma=0.95)
+    agent.play_episodes(double_q_learning)
