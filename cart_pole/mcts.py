@@ -8,12 +8,11 @@ from typing import Tuple
 
 import gym
 import numpy as np
+from sklearn.linear_model import SGDClassifier, SGDRegressor
 from tqdm import tqdm
 
 from cart_pole.env import CartPole
 from cart_pole.q_learning import QTable
-
-from sklearn.linear_model import SGDClassifier, SGDRegressor
 
 
 class Node:
@@ -209,4 +208,3 @@ if __name__ == "__main__":
     # Train value function and child prior with linear models.
     # value_function = SGDRegressor()
     # prior_function = SGDClassifier()
-

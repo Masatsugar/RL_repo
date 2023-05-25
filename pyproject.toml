@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "rl-repo"
+version = "0.1.0"
+description = "MIT"
+authors = ["Masatsugar <20656329+Masatsugar@users.noreply.github.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "rl_repo"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+ray = {extras = ["rllib"], version = "^2.4.0"}
+torch = "^2.0.1"
+gym = "^0.26.2"
+gymnasium = "0.26.3"
+matplotlib = "^3.7.1"
+tqdm = "^4.65.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

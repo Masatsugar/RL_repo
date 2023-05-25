@@ -1,11 +1,12 @@
-import gym
+import gymnasium as gym
 
 from grid_world.agent import Qlearning, Vlearning
 
 if __name__ == "__main__":
     env = gym.make("FrozenLake-v1")
     test_env = gym.make("FrozenLake-v1")
-
+    # next_state, reward, terminated, truncated , info = env.step(action)
+    # done = truncated or terminated
     agent = Vlearning(env, gamma=0.99, epsilon=0.0)
     # agent = Qlearning(env, gamma=0.99, epsilon=0.0)
     iter_n = 0

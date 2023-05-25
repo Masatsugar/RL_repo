@@ -1,3 +1,4 @@
+import copy
 import random
 from collections import Counter, defaultdict
 from typing import Optional, Tuple
@@ -43,18 +44,19 @@ class Agent:
     def run_episode(self, env=None, is_random=False):
         total_reward = 0.0
         if env is None:
-            env = self.env
+            env = copy.deepcopy(self.env)
 
-        state = env.reset()
+        state, _ = env.reset()
         while True:
             action = (
                 env.action_space.sample() if is_random else self.compute_action(state)
             )
-            next_state, reward, is_done, _ = env.step(action)
+            next_state, reward, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
             self.set_state_action(state, action, reward, next_state)
             total_reward += reward
             state = next_state
-            if is_done:
+            if done:
                 break
 
         return total_reward
@@ -75,7 +77,7 @@ class Vlearning(Agent):
     def __init__(self, env, gamma=0.9, epsilon=0.1):
         super(Vlearning, self).__init__(env, gamma, epsilon)
         self.env = env
-        self.state = self.env.reset()
+        self.state, _ = self.env.reset()
 
     def select_best_action(self, state):
         best_action, best_value = None, None
@@ -135,7 +137,7 @@ class Qlearning(Agent):
     def __init__(self, env, gamma=0.9, epsilon=0.1):
         super(Qlearning, self).__init__(env, gamma, epsilon)
         self.env = env
-        self.state = self.env.reset()
+        self.state, _ = self.env.reset()
 
     def select_best_action(self, state):
         best_action, best_value = None, None
@@ -171,7 +173,7 @@ class TDlearning:
         self.gamma = gamma
         self.alpha = alpha
         self.epsilon = epsilon
-        self.state = self.env.reset()
+        self.state, _ = self.env.reset()
         self.state_values = defaultdict(float)
         self.action_values = defaultdict(float)
         self.episode = 0
@@ -228,7 +230,8 @@ class TDlearning:
         state = env.reset()
         while True:
             action = self.compute_action(state, episode=episode)
-            next_state, reward, done, _ = env.step(action)
+            next_state, reward, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
             self.update(state, action, reward, next_state)
             self.update_q(state, action, reward, next_state)
             total_reward += reward
@@ -262,10 +265,11 @@ class MonteCarlo:
 
     def run_episode(self):
         self.reset()
-        obs = self.env.reset()
+        obs, _ = self.env.reset()
         while True:
             action = self.env.action_space.sample()
-            next_obs, reward, done, _ = self.env.step(action)
+            next_obs, reward, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
             self.set_state(obs, action, reward, done)
             if done:
                 self.episode += 1

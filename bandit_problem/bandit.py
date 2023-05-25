@@ -7,12 +7,20 @@ import pandas as pd
 from numpy import ndarray
 from tqdm import tqdm
 
-from bandit_problem.utils import (UCB1, BernoulliArm, EpsilonGreedy,
-                                  PolicyGradient, ThompsonSampling)
+from bandit_problem.utils import (
+    UCB1,
+    BernoulliArm,
+    EpsilonGreedy,
+    PolicyGradient,
+    ThompsonSampling,
+)
 
 
 def test_algorithm(
-    policy: Any, arms: List[BernoulliArm], num_sims: int = 200, horizon: int = 200,
+    policy: Any,
+    arms: List[BernoulliArm],
+    num_sims: int = 200,
+    horizon: int = 200,
 ) -> Dict[str, ndarray]:
     """Run an algorithm for evaluation in MAB
 
@@ -41,7 +49,7 @@ def test_algorithm(
 
     for sim in tqdm(range(num_sims)):
         sim += 1
-        policy.reset(len(arms))
+        policy.reset()
         for step in range(horizon):
             step += 1
             index = (sim - 1) * horizon + step - 1
@@ -89,7 +97,7 @@ def run(arms: List[BernoulliArm], algo: Any, y_label: str = "rewards") -> None:
         label_name += f"({algo.epsilon})"
     print(label_name)
     n_arms = len(arms)
-    algo.reset(n_arms)
+    algo.reset()
     results = test_algorithm(algo, arms, num_sims=NUM_SIMS, horizon=HORIZON)
     df = pd.DataFrame(results)
     grouped = df[y_label].groupby(df["times"])

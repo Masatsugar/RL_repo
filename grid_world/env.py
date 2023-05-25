@@ -1,7 +1,7 @@
 import enum
 import random
 
-import gym
+import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -15,7 +15,6 @@ class Action(enum.IntEnum):
 
 class CustomMaze(gym.Env):
     def __init__(self):
-
         self.states = [[i + 1, j + 1] for j in range(3) for i in range(4)]
         self.action_space = gym.spaces.Discrete(4)
         self.observation_space = gym.spaces.Discrete(12)
@@ -53,7 +52,7 @@ class CustomMaze(gym.Env):
         self.cur_state = self.start
         self.done = False
         self.counter = 0
-        return self.cur_state
+        return self.cur_state, {}
 
     def render(self, mode="human"):
         fig = plt.figure(figsize=(5, 5))
@@ -92,7 +91,7 @@ class CustomMaze(gym.Env):
 
     def step(self, action):
         if self.counter == self.max_horizon:
-            return self.cur_state, 0.0, True, {}
+            return self.cur_state, 0.0, True, True, {}
 
         if self.done:
             raise ValueError(
@@ -104,27 +103,27 @@ class CustomMaze(gym.Env):
             if self.cur_state in [0, 2, 3, 4, 6]:
                 self.cur_state += 4
             if self.cur_state == self.fire:
-                return self.cur_state, -1.0, True, {}
-            return self.cur_state, 0.0, False, {}
+                return self.cur_state, -1.0, True, True, {}
+            return self.cur_state, 0.0, False, False, {}
 
         elif action == Action.Right:
             if self.cur_state in [0, 1, 2, 6, 8, 9, 10]:
                 self.cur_state += 1
             if self.cur_state == self.goal:
-                return self.cur_state, 1.0, True, {}
+                return self.cur_state, 1.0, True, True, {}
             if self.cur_state == self.fire:
-                return self.cur_state, -1.0, True, {}
-            return self.cur_state, 0.0, False, {}
+                return self.cur_state, -1.0, True, True, {}
+            return self.cur_state, 0.0, False, False, {}
 
         elif action == Action.Down:
             if self.cur_state in [4, 6, 8, 10]:
                 self.cur_state -= 4
-            return self.cur_state, 0.0, False, {}
+            return self.cur_state, 0.0, False, False, {}
 
         elif action == Action.Left:
             if self.cur_state in [1, 2, 3, 9, 10]:
                 self.cur_state -= 1
-            return self.cur_state, 0.0, False, {}
+            return self.cur_state, 0.0, False, False, {}
         else:
             raise ValueError("Action is ranged from [0, 1, 2, 3].")
 
@@ -140,7 +139,8 @@ class CustomMaze(gym.Env):
             action = np.random.choice(
                 [i for i in range(self.action_space.n)], p=pi[state, :]
             )
-            state, reward, is_done, _ = self.step(action)
+            state, reward, terminated, truncated, _ = self.step(action)
+            is_done = terminated or truncated
             total_reward += reward
             s_a_history.append([state, action])
             if is_done:
@@ -165,9 +165,9 @@ class MarsRover(gym.Env):
         self.state = self.start
         self.slip_ratio = 0.3
 
-    def reset(self):
+    def reset(self, **kwargs):
         self.state = self.start
-        return self.state
+        return self.state, {}
 
     def step(self, action):
         if random.random() > self.slip_ratio:
@@ -203,35 +203,35 @@ class AliasedGridWorld(gym.Env):
         self.fire = [5, 9]
         self.wall = [6, 8]
 
-    def reset(self):
+    def reset(self, **kwargs):
         self.state = self.start
-        return self.state
+        return self.state, {}
 
     def step(self, action):
         if action == Action.Up:
             if self.state in self.fire:
                 self.state -= 5
-            return self.state, 0.0, False, {}
+            return self.state, 0.0, False, False, {}
 
         elif action == Action.Down:
             if self.state in [0, 2, 4]:
                 self.state += 5
             if self.state == self.goal:
-                return self.state, 1.0, True, {}
+                return self.state, 1.0, True, False, {}
 
             if self.state in self.fire:
-                return self.state, -1.0, True, {}
+                return self.state, -1.0, True, False, {}
 
-            return self.state, 0.0, False, {}
+            return self.state, 0.0, False, False, {}
 
         elif action == Action.Right:
             if self.state in [0, 1, 2, 3]:
                 self.state += 1
-            return self.state, 0.0, False, {}
+            return self.state, 0.0, False, False, {}
         else:
             if self.state in [1, 2, 3, 4]:
                 self.state -= 1
-            return self.state, 0.0, False, {}
+            return self.state, 0.0, False, False, {}
 
 
 if __name__ == "__main__":

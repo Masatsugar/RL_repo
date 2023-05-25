@@ -33,7 +33,7 @@ class MultiArmedBandit:
 
     def run(self, policy):
         self.reset()
-        policy.reset(len(self.arms))
+        policy.reset()
         for i in range(self.max_step):
             action = policy.select_arm()
             _, reward, done, _ = self.step(action)
